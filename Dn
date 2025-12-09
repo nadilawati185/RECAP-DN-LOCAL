@@ -1,0 +1,276 @@
+// --- Data untuk Dashboard ---
+// Catatan: Ganti data dummy ini dengan sumber data aktual Anda (misalnya: API Fetch)
+let ordersData = [
+  { id: 1001, customer: 'Rina Wijaya', date: '2023-10-01', status: 'Selesai', amount: 150.75 },
+  { id: 1002, customer: 'Bambang Irawan', date: '2023-10-05', status: 'Diproses', amount: 320.00 },
+  { id: 1003, customer: 'Siti Nurmala', date: '2023-10-10', status: 'Tertunda', amount: 75.50 },
+  { id: 1004, customer: 'Andi Pratama', date: '2023-10-15', status: 'Terkirim', amount: 99.99 },
+  { id: 1005, customer: 'Dewi Lestari', date: '2023-10-20', status: 'Dibatalkan', amount: 25.00 },
+];
+
+// Reference ke badan tabel
+const orderTableBody = document.getElementById('orderTableBody');
+
+// --- Fungsi Utilitas ---
+
+/**
+ * Memformat tanggal string menjadi format yang mudah dibaca.
+ * @param {string} dateStr - String tanggal (e.g., 'YYYY-MM-DD').
+ * @returns {string} Tanggal yang diformat (e.g., 'Oct 1, 2023').
+ */
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/**
+ * Menampilkan pesan toast (notifikasi).
+ * @param {string} message - Isi pesan.
+ * @param {string} type - Tipe notifikasi ('success', 'error', 'info').
+ */
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.className = `toast ${type} active`;
+
+  setTimeout(() => {
+    toast.classList.remove('active');
+  }, 3000);
+}
+
+// --- Fungsi Tampilan dan Interaksi Data ---
+
+/**
+ * Menampilkan pesanan ke dalam tabel.
+ * @param {Array<Object>} orders - Daftar pesanan yang akan ditampilkan.
+ */
+function displayOrders(orders) {
+  if (!orderTableBody) return;
+  orderTableBody.innerHTML = '';
+
+  if (orders.length === 0) {
+    orderTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Tidak ada pesanan ditemukan.</td></tr>';
+    return;
+  }
+
+  orders.forEach(order => {
+    const row = orderTableBody.insertRow();
+    // Menambahkan data-status untuk kemudahan ekspor dan styling
+    const statusClass = order.status.toLowerCase().replace(/\s/g, '-');
+    
+    row.innerHTML = `
+      <td>${order.id}</td>
+      <td>${order.customer}</td>
+      <td>${formatDate(order.date)}</td>
+      <td class="status-cell">
+        <span class="status ${statusClass}" data-status="${order.status}">
+          ${order.status}
+        </span>
+      </td>
+      <td>$${order.amount.toFixed(2)}</td>
+      <td>
+        <button class="action-btn view-btn" data-id="${order.id}">Lihat</button>
+      </td>
+    `;
+  });
+}
+
+
+/**
+ * Mencari pesanan berdasarkan input.
+ */
+function searchOrders() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  
+  const filteredOrders = ordersData.filter(order =>
+    order.id.toString().includes(searchTerm) ||
+    order.customer.toLowerCase().includes(searchTerm) ||
+    order.status.toLowerCase().includes(searchTerm)
+  );
+  
+  displayOrders(filteredOrders);
+}
+
+
+// Variabel untuk melacak status pengurutan
+let currentSort = { column: null, type: 'asc' };
+
+/**
+ * Mengurutkan pesanan berdasarkan kolom dan tipe (ascending/descending).
+ * @param {string} column - Nama kolom untuk diurutkan ('id', 'customer', 'date', 'status', 'amount').
+ */
+function sortOrders(column) {
+  const isSameColumn = currentSort.column === column;
+  
+  // Tentukan tipe pengurutan baru
+  let newType = isSameColumn && currentSort.type === 'asc' ? 'desc' : 'asc';
+
+  ordersData.sort((a, b) => {
+    let aVal = a[column];
+    let bVal = b[column];
+
+    // Penanganan khusus untuk tanggal dan angka
+    if (column === 'date') {
+      aVal = new Date(a[column]).getTime();
+      bVal = new Date(b[column]).getTime();
+    } else if (column === 'amount' || column === 'id') {
+      // Biarkan sebagai angka
+    } else {
+      // Perbandingan string (case-insensitive)
+      aVal = String(a[column]).toLowerCase();
+      bVal = String(b[column]).toLowerCase();
+    }
+
+    if (aVal < bVal) return newType === 'asc' ? -1 : 1;
+    if (aVal > bVal) return newType === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  currentSort = { column: column, type: newType };
+  
+  // Tampilkan ulang data yang sudah diurutkan (gunakan searchOrders untuk mempertahankan filter)
+  searchOrders(); 
+
+  // TODO: Tambahkan indikator visual pengurutan (misalnya ikon panah) pada header tabel.
+}
+
+
+// --- Fungsi Export ---
+
+/**
+ * Mengekspor data tabel yang sedang terlihat ke file Excel (.xlsx).
+ */
+function exportToExcel() {
+  // Ambil data dari baris tabel yang terlihat saat ini
+  const rows = Array.from(orderTableBody.querySelectorAll('tr'));
+  if (rows.length === 0 || rows[0].querySelector('td[colspan]')) {
+      showToast('Tidak ada data untuk diekspor.', 'error');
+      return;
+  }
+
+  const header = ['ID', 'Pelanggan', 'Tanggal', 'Status', 'Jumlah'];
+  const data = rows.map(row => {
+      const cells = row.querySelectorAll('td');
+      return [
+          cells[0].textContent, 
+          cells[1].textContent, 
+          cells[2].textContent, 
+          // Mengambil status dari data-status atribut untuk data mentah
+          cells[3].querySelector('.status').getAttribute('data-status') || cells[3].textContent.trim(), 
+          cells[4].textContent.replace('$', '').trim() 
+      ];
+  });
+
+  const ws_data = [header, ...data];
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Laporan Pesanan");
+  
+  XLSX.writeFile(wb, "Laporan_Pesanan_DN.xlsx");
+  showToast('Data berhasil diekspor ke Excel!', 'success');
+}
+
+/**
+ * Mengekspor tampilan tabel saat ini ke file PDF.
+ */
+function exportToPDF() {
+  const table = document.getElementById('orderTable');
+  if (!table) return;
+
+  showToast('Membuat PDF...', 'info');
+
+  // Menggunakan html2canvas untuk mengubah tabel menjadi gambar
+  html2canvas(table, { scale: 2 }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    // Membuat objek jsPDF (memerlukan jsPDF library)
+    const pdf = new jspdf.jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Menghitung dimensi untuk memasukkan gambar ke PDF
+    const imgWidth = 280; 
+    const pageHeight = 210; 
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // Tambahkan gambar pertama
+    pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // Tambahkan halaman baru jika konten melebihi 1 halaman
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 5, position + 5, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save('Laporan_Pesanan_DN.pdf');
+    showToast('Tabel berhasil diekspor ke PDF!', 'success');
+  }).catch(error => {
+    console.error("Error generating PDF:", error);
+    showToast('Gagal mengekspor ke PDF.', 'error');
+  });
+}
+
+
+// --- Fungsi Inisialisasi Utama ---
+
+function initApp() {
+  // 1. Tampilan Awal
+  displayOrders(ordersData);
+
+  // 2. Pasang Event Listeners
+  
+  // Pencarian
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', searchOrders);
+  }
+
+  // Pengurutan (Asumsi header tabel memiliki atribut data-column)
+  const sortableHeaders = document.querySelectorAll('th[data-column]');
+  sortableHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+      const column = header.getAttribute('data-column');
+      if (column) {
+        sortOrders(column);
+      }
+    });
+  });
+
+  // Tombol Export
+  const exportExcelBtn = document.getElementById('exportExcelBtn');
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener('click', exportToExcel);
+  }
+
+  const exportPDFBtn = document.getElementById('exportPDFBtn');
+  if (exportPDFBtn) {
+    exportPDFBtn.addEventListener('click', exportToPDF);
+  }
+
+  // Tombol Lihat/View (Delegasi Event)
+  if (orderTableBody) {
+      orderTableBody.addEventListener('click', (e) => {
+          if (e.target.classList.contains('view-btn')) {
+              const orderId = e.target.getAttribute('data-id');
+              const order = ordersData.find(o => o.id.toString() === orderId);
+              if (order) {
+                  showToast(`Melihat detail pesanan #${orderId} - Pelanggan: ${order.customer}`, 'info');
+                  // Logika untuk menampilkan detail pesanan di sini
+              }
+          }
+      });
+  }
+
+  showToast('Dashboard berhasil dimuat.', 'success');
+}
+
+// Pastikan DOM sudah dimuat sepenuhnya sebelum menjalankan initApp
+document.addEventListener('DOMContentLoaded', initApp);
