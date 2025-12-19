@@ -558,14 +558,26 @@ This is an automated notification from IKK Order DN Tracker.
       });
     }
 
+    // ========================================
+    // FUNGSI HAPUS CUSTOM CUSTOMER
+    // ========================================
     window.removeCustomCustomer = function(bu, name, destination) {
+      // Tentukan array key berdasarkan Business Unit
       const arrayKey = bu === 'BU 17' ? 'bu17' : 'cmi';
+      
+      // Filter dan hapus customer yang sesuai
       customCustomers[arrayKey] = customCustomers[arrayKey].filter(c => 
         !(c.name === name && c.destination === destination)
       );
+      
+      // Simpan perubahan ke localStorage
       saveCustomCustomers();
+      
+      // Update tampilan list customer
       renderCustomerList();
-      showToast('✓ Customer removed!', 'success');
+      
+      // Tampilkan notifikasi sukses
+      showToast('✓ Customer berhasil dihapus!', 'success');
     };
 
     function getAllCustomers(bu) {
@@ -606,11 +618,21 @@ This is an automated notification from IKK Order DN Tracker.
       });
     }
 
+    // ========================================
+    // FUNGSI HAPUS EMAIL ADDRESS
+    // ========================================
     window.removeEmailAddress = function(index) {
+      // Hapus email dari array berdasarkan index
       emailAddressList.splice(index, 1);
+      
+      // Simpan perubahan ke localStorage
       saveEmailAddresses();
+      
+      // Update tampilan list email
       renderEmailAddressList();
-      showToast('✓ Email address removed!', 'success');
+      
+      // Tampilkan notifikasi sukses
+      showToast('✓ Email address berhasil dihapus!', 'success');
     };
 
     function calculateDNTarget(value) {
@@ -845,8 +867,8 @@ This is an automated notification from IKK Order DN Tracker.
             </td>
             <td class="px-4 py-3 text-sm font-bold">${order.dn_target} MT</td>
             <td class="px-4 py-3 text-sm no-print">
-              <button onclick="editOrder('${order.__backendId}')" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2">Edit</button>
-              <button onclick="deleteOrder('${order.__backendId}')" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">Delete</button>
+              <button onclick="window.editOrder('${order.__backendId}')" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2">✏️ Edit</button>
+              <button onclick="window.deleteOrder('${order.__backendId}')" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">🗑️ Hapus</button>
             </td>
           </tr>
         `).join('');
@@ -880,8 +902,8 @@ This is an automated notification from IKK Order DN Tracker.
             </td>
             <td class="px-4 py-3 text-sm font-bold">${order.dn_target} MT</td>
             <td class="px-4 py-3 text-sm no-print">
-              <button onclick="editOrder('${order.__backendId}')" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2">Edit</button>
-              <button onclick="deleteOrder('${order.__backendId}')" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">Delete</button>
+              <button onclick="window.editOrder('${order.__backendId}')" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2">✏️ Edit</button>
+              <button onclick="window.deleteOrder('${order.__backendId}')" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">🗑️ Hapus</button>
             </td>
           </tr>
         `).join('');
@@ -909,13 +931,24 @@ This is an automated notification from IKK Order DN Tracker.
       tbody.innerHTML = tableHTML || '<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No orders found</td></tr>';
     }
 
+    // ========================================
+    // VARIABEL UNTUK MENYIMPAN ORDER YANG SEDANG DI-EDIT
+    // ========================================
     let currentEditingOrder = null;
 
-    function editOrder(backendId) {
+    // ========================================
+    // FUNGSI UNTUK EDIT ORDER
+    // ========================================
+    // Fungsi ini dipanggil ketika tombol Edit diklik pada tabel order
+    window.editOrder = function(backendId) {
+      // Cari order berdasarkan backendId
       const order = allOrders.find(o => o.__backendId === backendId);
       if (!order) return;
       
+      // Simpan reference order yang sedang di-edit
       currentEditingOrder = order;
+      
+      // Isi form edit dengan data order yang dipilih
       document.getElementById('editBusinessUnit').value = order.business_unit;
       document.getElementById('editCustomerName').value = order.customer_name;
       document.getElementById('editDestination').value = order.destination;
@@ -923,63 +956,98 @@ This is an automated notification from IKK Order DN Tracker.
       document.getElementById('editOrderDate').value = order.order_date;
       document.getElementById('editCompleted').checked = order.completed;
       
+      // Tampilkan modal edit
       document.getElementById('editModal').classList.remove('hidden');
-    }
+    };
 
-    async function deleteOrder(backendId) {
+    // ========================================
+    // FUNGSI UNTUK DELETE ORDER
+    // ========================================
+    // Fungsi ini dipanggil ketika tombol Delete diklik pada tabel order
+    window.deleteOrder = async function(backendId) {
+      // Cari index order berdasarkan backendId atau id
       const orderIndex = allOrders.findIndex(o => o.__backendId === backendId || o.id === backendId);
       if (orderIndex === -1) return;
       
+      // Ambil data order yang akan dihapus
       const order = allOrders[orderIndex];
       
+      // ========================================
+      // BUAT DIALOG KONFIRMASI DELETE (INLINE)
+      // ========================================
+      // Kita tidak menggunakan alert() karena tidak didukung di iframe
+      // Kita buat dialog konfirmasi custom menggunakan div
       const confirmDiv = document.createElement('div');
       confirmDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
       confirmDiv.innerHTML = `
         <div class="bg-white rounded-lg p-6 max-w-sm">
-          <p class="text-lg mb-4">Delete this order?</p>
+          <p class="text-lg mb-4">🗑️ Hapus order ini?</p>
           <p class="text-sm text-gray-600 mb-4">${order.customer_name}</p>
           <div class="flex gap-3">
-            <button id="confirmDelete" class="flex-1 bg-red-500 text-white py-2 rounded hover:bg-red-600">Delete</button>
-            <button id="cancelDelete" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400">Cancel</button>
+            <button id="confirmDelete" class="flex-1 bg-red-500 text-white py-2 rounded hover:bg-red-600">Hapus</button>
+            <button id="cancelDelete" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400">Batal</button>
           </div>
         </div>
       `;
       
+      // Tampilkan dialog konfirmasi
       document.body.appendChild(confirmDiv);
       
+      // ========================================
+      // HANDLER TOMBOL KONFIRMASI DELETE
+      // ========================================
       document.getElementById('confirmDelete').onclick = async () => {
         const deleteBtn = document.getElementById('confirmDelete');
         deleteBtn.disabled = true;
-        deleteBtn.textContent = 'Deleting...';
+        deleteBtn.textContent = 'Menghapus...';
         
+        // Hapus order dari array lokal
         allOrders.splice(orderIndex, 1);
+        
+        // Simpan perubahan ke localStorage (offline storage)
         OfflineStorage.save('orders', allOrders);
+        
+        // Update tampilan: stats, tabel, kalender, dan chart
         updateStats();
         renderOrderTable();
         renderCalendar();
         renderCharts();
         
+        // ========================================
+        // SINKRONISASI DENGAN DATABASE (ONLINE)
+        // ========================================
         if (isOnline && order.__backendId) {
+          // Jika online dan order punya backendId, hapus dari database
           try {
             const result = await window.dataSdk.delete(order);
             if (!result.isOk) {
+              // Jika gagal, simpan ke pending sync untuk dicoba lagi nanti
               OfflineStorage.savePendingSync({ type: 'delete', data: order });
             }
           } catch (error) {
+            // Jika error, simpan ke pending sync
             OfflineStorage.savePendingSync({ type: 'delete', data: order });
           }
         } else if (order.__backendId) {
+          // Jika offline tapi order punya backendId, simpan ke pending sync
           OfflineStorage.savePendingSync({ type: 'delete', data: order });
         }
         
-        showToast('✓ Order deleted!', 'success');
+        // Tampilkan notifikasi sukses
+        showToast('✓ Order berhasil dihapus!', 'success');
+        
+        // Tutup dan hapus dialog konfirmasi
         document.body.removeChild(confirmDiv);
       };
       
+      // ========================================
+      // HANDLER TOMBOL BATAL DELETE
+      // ========================================
       document.getElementById('cancelDelete').onclick = () => {
+        // Tutup dialog tanpa menghapus order
         document.body.removeChild(confirmDiv);
       };
-    }
+    };
 
     function renderCharts() {
       renderCustomerChart();
@@ -1293,14 +1361,24 @@ This is an automated notification from IKK Order DN Tracker.
       document.getElementById('editModal').classList.add('hidden');
     });
 
+    // ========================================
+    // EVENT HANDLER: SUBMIT FORM EDIT ORDER
+    // ========================================
+    // Fungsi ini dipanggil ketika tombol Update diklik pada modal edit
     document.getElementById('editOrderForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+      e.preventDefault(); // Mencegah form refresh halaman
+      
+      // Validasi: pastikan ada order yang sedang di-edit
       if (!currentEditingOrder) return;
       
+      // Ambil tombol submit dan set status loading
       const updateBtn = e.target.querySelector('button[type="submit"]');
       updateBtn.disabled = true;
-      updateBtn.textContent = 'Saving...';
+      updateBtn.textContent = 'Menyimpan...';
       
+      // ========================================
+      // UPDATE DATA ORDER DENGAN INPUT BARU
+      // ========================================
       currentEditingOrder.business_unit = document.getElementById('editBusinessUnit').value;
       currentEditingOrder.customer_name = document.getElementById('editCustomerName').value;
       currentEditingOrder.destination = document.getElementById('editDestination').value;
@@ -1308,28 +1386,42 @@ This is an automated notification from IKK Order DN Tracker.
       currentEditingOrder.order_date = document.getElementById('editOrderDate').value;
       currentEditingOrder.completed = document.getElementById('editCompleted').checked;
       
+      // Simpan perubahan ke localStorage (offline storage)
       OfflineStorage.save('orders', allOrders);
+      
+      // Update tampilan: stats, tabel, kalender, dan chart
       updateStats();
       renderOrderTable();
       renderCalendar();
       renderCharts();
       
+      // ========================================
+      // SINKRONISASI UPDATE KE DATABASE (ONLINE)
+      // ========================================
       if (isOnline) {
+        // Jika online, kirim update ke database via Data SDK
         try {
           const result = await window.dataSdk.update(currentEditingOrder);
           if (!result.isOk) {
+            // Jika gagal, simpan ke pending sync untuk dicoba lagi nanti
             OfflineStorage.savePendingSync({ type: 'update', data: currentEditingOrder });
           }
         } catch (error) {
+          // Jika error, simpan ke pending sync
           OfflineStorage.savePendingSync({ type: 'update', data: currentEditingOrder });
         }
       } else {
+        // Jika offline, simpan ke pending sync untuk sinkronisasi nanti
         OfflineStorage.savePendingSync({ type: 'update', data: currentEditingOrder });
       }
       
+      // Tutup modal edit
       document.getElementById('editModal').classList.add('hidden');
-      showToast('✓ Order updated!', 'success');
       
+      // Tampilkan notifikasi sukses
+      showToast('✓ Order berhasil diupdate!', 'success');
+      
+      // Reset tombol submit
       updateBtn.disabled = false;
       updateBtn.textContent = 'Update';
     });
@@ -1863,5 +1955,5 @@ IKK Order DN Tracker System
 
     renderCalendar();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b02e0fdb603603b',t:'MTc2NjEwNTE0NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b039e93a7eafd02',t:'MTc2NjExMjkwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
