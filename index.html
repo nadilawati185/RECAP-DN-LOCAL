@@ -1,143 +1,2993 @@
-const roundDN = (value) => {
-  const num = parseInt(value);
-  const remainder = num % 10;
-  if (remainder >= 3 && remainder <= 4) return Math.floor(num / 10) * 10 + 5;
-  if (remainder <= 2) return Math.floor(num / 10) * 10;
-  return num; // Default for other values
-};
-const roundDN = (value) => {
-  const num = parseInt(value);
-  const remainder = num % 10;
-  if (remainder >= 3 && remainder <= 4) return Math.floor(num / 10) * 10 + 5;
-  if (remainder <= 2) return Math.floor(num / 10) * 10;
-  return num; // Default for other values
-};
-import React, { useState, useEffect } from 'react';
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, onValue, remove, update } from "firebase/database";
-import Chart from 'react-apexcharts'; // For Bar/Line Graphs
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
-[span_1](start_span)// Config from source[span_1](end_span)
-const firebaseConfig = {
-  apiKey: "AIzaSyAEZA47N7205zjQEKT2iSViQJvCwLEzusg",
-  authDomain: "dn-ikk.firebaseapp.com",
-  databaseURL: "https://dn-ikk-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dn-ikk",
-  appId: "1:121412700238:web:598d91bcebc6976a615b1f"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-export default function OrderDNApp() {
-  const [orders, setOrders] = useState([]);
-  const [theme, setTheme] = useState('professional');
-  const [search, setSearch] = useState('');
-
-  // 1. CRUD Operations
-  const addOrder = (newData) => {
-    const ordersRef = ref(db, 'orders');
-    push(ordersRef, { ...newData, timestamp: Date.now(), createdBy: 'IKK' });
-  };
-
-  // 2. Export Functions (PDF, Excel, JPG)
-  const downloadPDF = () => {
-    const doc = new jsPDF();
-    doc.text("ORDER DN IKK - INDAH KIAT KARAWANG", 10, 10);
-    doc.autoTable({ html: '#dn-table' });
-    doc.text(`Created By: IKK`, 10, doc.internal.pageSize.height - 10);
-    doc.save('Order_DN_IKK.pdf');
-  };
-
-  return (
-    <div className={`app-container theme-${theme}`}>
-      <header className="flex justify-between p-4 bg-slate-800 text-white">
-        <h1>ORDER DN IKK - INDAH KIAT KARAWANG</h1>
-        <div className="search-bar">
-          <input 
-            type="text" 
-            placeholder="Search Customer..." 
-            onChange={(e) => setSearch(e.target.value)}
-            className="text-black p-1 rounded"
-          />
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DN Order Dashboard IKK</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      height: 100%;
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+    
+    .app-wrapper {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+    }
+    
+    /* Theme Variables */
+    .theme-modern {
+      --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --bg-secondary: #ffffff;
+      --bg-accent: #f7fafc;
+      --text-primary: #2d3748;
+      --text-secondary: #718096;
+      --border-color: #e2e8f0;
+      --accent-color: #667eea;
+      --accent-hover: #5a67d8;
+      --success-color: #48bb78;
+      --danger-color: #f56565;
+      --warning-color: #ed8936;
+      --shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    
+    .theme-dark {
+      --bg-primary: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+      --bg-secondary: #2d3748;
+      --bg-accent: #4a5568;
+      --text-primary: #f7fafc;
+      --text-secondary: #cbd5e0;
+      --border-color: #4a5568;
+      --accent-color: #667eea;
+      --accent-hover: #5a67d8;
+      --success-color: #48bb78;
+      --danger-color: #fc8181;
+      --warning-color: #f6ad55;
+      --shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .theme-ocean {
+      --bg-primary: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+      --bg-secondary: #ffffff;
+      --bg-accent: #f0f9ff;
+      --text-primary: #0c4a6e;
+      --text-secondary: #0369a1;
+      --border-color: #bae6fd;
+      --accent-color: #0ea5e9;
+      --accent-hover: #0284c7;
+      --success-color: #10b981;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --shadow: 0 10px 40px rgba(14,165,233,0.2);
+    }
+    
+    .theme-pink {
+      --bg-primary: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+      --bg-secondary: #ffffff;
+      --bg-accent: #fce7f3;
+      --text-primary: #831843;
+      --text-secondary: #9f1239;
+      --border-color: #fbcfe8;
+      --accent-color: #ec4899;
+      --accent-hover: #db2777;
+      --success-color: #10b981;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --shadow: 0 10px 40px rgba(236,72,153,0.2);
+    }
+    
+    .theme-lilac {
+      --bg-primary: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+      --bg-secondary: #ffffff;
+      --bg-accent: #ede9fe;
+      --text-primary: #4c1d95;
+      --text-secondary: #6d28d9;
+      --border-color: #ddd6fe;
+      --accent-color: #a78bfa;
+      --accent-hover: #8b5cf6;
+      --success-color: #10b981;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --shadow: 0 10px 40px rgba(167,139,250,0.2);
+    }
+    
+    .theme-green {
+      --bg-primary: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --bg-secondary: #ffffff;
+      --bg-accent: #d1fae5;
+      --text-primary: #064e3b;
+      --text-secondary: #065f46;
+      --border-color: #a7f3d0;
+      --accent-color: #10b981;
+      --accent-hover: #059669;
+      --success-color: #10b981;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --shadow: 0 10px 40px rgba(16,185,129,0.2);
+    }
+    
+    .theme-blue {
+      --bg-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      --bg-secondary: #ffffff;
+      --bg-accent: #dbeafe;
+      --text-primary: #1e3a8a;
+      --text-secondary: #1e40af;
+      --border-color: #bfdbfe;
+      --accent-color: #3b82f6;
+      --accent-hover: #2563eb;
+      --success-color: #10b981;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --shadow: 0 10px 40px rgba(59,130,246,0.2);
+    }
+    
+    .theme-red {
+      --bg-primary: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      --bg-secondary: #ffffff;
+      --bg-accent: #fee2e2;
+      --text-primary: #7f1d1d;
+      --text-secondary: #991b1b;
+      --border-color: #fecaca;
+      --accent-color: #ef4444;
+      --accent-hover: #dc2626;
+      --success-color: #10b981;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --shadow: 0 10px 40px rgba(239,68,68,0.2);
+    }
+    
+    .app-wrapper {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+    
+    /* Header - Modern Style */
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem 2rem;
+      border-bottom: none;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      position: relative;
+      z-index: 100;
+    }
+    
+    .theme-dark .header {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .header-title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .header-title p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: var(--bg-accent);
+      color: var(--text-primary);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #f56565, #e53e3e);
+      color: white;
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      color: white;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Main Content */
+    .main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Sidebar - Modern */
+    .sidebar {
+      width: 280px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+    }
+    
+    .theme-dark .sidebar {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .nav-item {
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.5rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .nav-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--accent-color);
+      transform: scaleY(0);
+      transition: transform 0.3s ease;
+    }
+    
+    .nav-item:hover {
+      background: var(--bg-accent);
+      transform: translateX(5px);
+    }
+    
+    .nav-item.active {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .nav-item.active::before {
+      transform: scaleY(1);
+    }
+    
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+    
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .theme-dark .stat-card {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent-color);
+    }
+    
+    .stat-card h3 {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    /* Calendar - Modern */
+    .calendar-container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+    }
+    
+    .theme-dark .calendar-container {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .calendar-header h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+    }
+    
+    .calendar-nav {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    
+    .calendar-nav button {
+      padding: 0.75rem 1.25rem;
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .calendar-nav button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    
+    .calendar-day-header {
+      text-align: center;
+      font-weight: 700;
+      padding: 0.75rem;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+    
+    .calendar-day-header.sunday {
+      color: #e53e3e;
+    }
+    
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      border: 2px solid var(--border-color);
+      background: var(--bg-accent);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    .calendar-day:hover {
+      transform: scale(1.05);
+      border-color: var(--accent-color);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    
+    .calendar-day.completed {
+      background: linear-gradient(135deg, var(--success-color), #38a169);
+      color: white;
+      border-color: var(--success-color);
+    }
+    
+    .calendar-day.completed::after {
+      content: '✓';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    
+    .calendar-day.sunday,
+    .calendar-day.holiday {
+      background: linear-gradient(135deg, #fed7d7, #feb2b2);
+      color: #e53e3e;
+      border-color: #e53e3e;
+      font-weight: 700;
+    }
+    
+    .calendar-day.today {
+      border-color: var(--accent-color);
+      border-width: 3px;
+      font-weight: 700;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+    
+    .calendar-day.other-month {
+      opacity: 0.3;
+    }
+    
+    .calendar-legend {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      background: var(--bg-accent);
+      border-radius: 12px;
+    }
+    
+    .calendar-legend h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    .legend-item {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-left: 4px solid #e53e3e;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    
+    /* Filters */
+    .filters {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem;
+      border-radius: 16px;
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: end;
+      box-shadow: var(--shadow);
+    }
+    
+    .theme-dark .filters {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .filter-group {
+      flex: 1;
+      min-width: 180px;
+    }
+    
+    .filter-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    .filter-group input,
+    .filter-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+    
+    .filter-group input:focus,
+    .filter-group select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Orders Section */
+    .orders-section {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+    }
+    
+    .theme-dark .orders-section {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .orders-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .orders-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    
+    thead {
+      background: var(--bg-accent);
+    }
+    
+    th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 2px solid var(--border-color);
+      white-space: nowrap;
+    }
+    
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    tbody tr {
+      transition: all 0.2s ease;
+    }
+    
+    tbody tr:hover {
+      background: var(--bg-accent);
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.375rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    
+    .badge-bu17 {
+      background: linear-gradient(135deg, #bee3f8, #90cdf4);
+      color: #2c5282;
+    }
+    
+    .badge-cmi {
+      background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+      color: #22543d;
+    }
+    
+    .badge-bu19 {
+      background: linear-gradient(135deg, #feebc8, #fbd38d);
+      color: #7c2d12;
+    }
+    
+    .badge-pm1 {
+      background: linear-gradient(135deg, #e9d5ff, #d8b4fe);
+      color: #5b21b6;
+    }
+    
+    /* Modal - Modern */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: var(--bg-secondary);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease-out;
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .modal-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    
+    .close-btn:hover {
+      background: var(--bg-accent);
+      color: var(--danger-color);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-accent);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Charts */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .chart-container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+    }
+    
+    .theme-dark .chart-container {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .chart-container h3 {
+      margin-bottom: 1.5rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    
+    /* Settings */
+    .settings-section {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+    }
+    
+    .theme-dark .settings-section {
+      background: rgba(45, 55, 72, 0.95);
+    }
+    
+    .settings-section h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .theme-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .theme-option {
+      padding: 1.25rem;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    
+    .theme-option:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-color);
+    }
+    
+    .theme-option.active {
+      border-color: var(--accent-color);
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+    }
+    
+    .loading.active {
+      display: block;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid var(--border-color);
+      border-top-color: var(--accent-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Toast - Modern */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 2000;
+      border-left: 4px solid var(--success-color);
+      min-width: 250px;
+      font-weight: 600;
+    }
+    
+    .theme-dark .toast {
+      background: rgba(45, 55, 72, 0.98);
+    }
+    
+    .toast.active {
+      display: block;
+      animation: toastSlideIn 0.3s ease-out;
+    }
+    
+    @keyframes toastSlideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .toast.error {
+      border-left-color: var(--danger-color);
+      color: var(--danger-color);
+    }
+    
+    .toast.success {
+      border-left-color: var(--success-color);
+      color: var(--success-color);
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .action-btn {
+      padding: 0.5rem 0.875rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      transition: all 0.3s ease;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .offline-indicator {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--warning-color);
+      color: white;
+      border-radius: 12px;
+      font-weight: 700;
+      z-index: 9999;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 0.9rem;
+    }
+    
+    .offline-indicator.show {
+      display: block;
+      animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    /* Responsive */
+    @media (max-width: 968px) {
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100%;
+        z-index: 999;
+        transition: left 0.3s ease;
+      }
+      
+      .sidebar.show {
+        left: 0;
+      }
+      
+      .header {
+        padding: 1rem;
+      }
+      
+      .header-title h1 {
+        font-size: 1.5rem;
+      }
+      
+      .content-area {
+        padding: 1rem;
+      }
+      
+      .calendar-grid {
+        gap: 0.25rem;
+      }
+      
+      .calendar-day {
+        font-size: 0.85rem;
+      }
+      
+      .filters {
+        flex-direction: column;
+      }
+      
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      table {
+        font-size: 0.8rem;
+      }
+      
+      th, td {
+        padding: 0.75rem 0.5rem;
+      }
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .language-selector {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    
+    .email-recipients {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      min-height: 50px;
+      background: var(--bg-accent);
+    }
+    
+    .email-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+      color: white;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .email-tag button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0;
+      line-height: 1;
+      transition: transform 0.2s;
+    }
+    
+    .email-tag button:hover {
+      transform: scale(1.2);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="offline-indicator" id="offlineIndicator">
+   📵 <span data-lang="offline">Offline Mode</span>
+  </div>
+  <div class="app-wrapper theme-modern"><!-- Main Dashboard -->
+   <div id="mainDashboard"><!-- Header -->
+    <header class="header">
+     <div class="header-title">
+      <h1 id="dashboardTitle">ORDER DN IKK</h1>
+      <p id="companySubtitle">INDAH KIAT KARAWANG</p>
+     </div>
+     <div class="header-actions"><select id="languageSelector" class="btn btn-secondary" style="cursor: pointer;"> <option value="en">🇬🇧 English</option> <option value="id">🇮🇩 Indonesia</option> <option value="th">🇹🇭 ภาษาไทย</option> <option value="zh">🇨🇳 中文</option> <option value="ja">🇯🇵 日本語</option> <option value="ko">🇰🇷 한국어</option> </select> <button class="btn btn-primary" id="addOrderBtn"><span data-lang="add_order">+ Add Order</span></button> <button class="btn btn-success" id="sendEmailBtn"><span data-lang="send_email">📧 Send Email</span></button> <button class="btn btn-secondary" id="downloadBtn"><span data-lang="download">📥 Download</span></button>
+     </div>
+    </header>
+    <div class="main-content"><!-- Sidebar -->
+     <aside class="sidebar">
+      <nav>
+       <div class="nav-item active" data-page="dashboard">
+        📊 <span data-lang="dashboard">Dashboard</span>
+       </div>
+       <div class="nav-item" data-page="orders">
+        📋 <span data-lang="orders_list">Orders List</span>
+       </div>
+       <div class="nav-item" data-page="analytics">
+        📈 <span data-lang="analytics">Analytics</span>
+       </div>
+       <div class="nav-item" data-page="customers">
+        👥 <span data-lang="customers">Customers</span>
+       </div>
+       <div class="nav-item" data-page="settings">
+        ⚙️ <span data-lang="settings">Settings</span>
+       </div>
+      </nav>
+     </aside><!-- Content Area -->
+     <main class="content-area"><!-- Dashboard Page -->
+      <div id="dashboardPage" class="page"><!-- Stats Cards -->
+       <div class="stats-grid">
+        <div class="stat-card">
+         <h3 data-lang="total_bu17">Total BU 17</h3>
+         <div class="stat-value" id="totalBU17">
+          0 MT
+         </div>
         </div>
-      </header>
-
-      <main className="grid grid-cols-12 gap-4 p-4">
-        {/* Calendar Section */}
-        <div className="col-span-4 bg-white p-4 shadow rounded">
-          <FullCalendar 
-            plugins={[dayGridPlugin]} 
-            initialView="dayGridMonth"
-            events={orders.map(o => ({ title: o.customer, date: o.date }))}
-          />
+        <div class="stat-card">
+         <h3 data-lang="total_cmi">Total CMI</h3>
+         <div class="stat-value" id="totalCMI">
+          0 MT
+         </div>
         </div>
-
-        {/* Table Section */}
-        <div className="col-span-8 bg-white p-4 shadow rounded">
-          <table id="dn-table" className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th>Customer</th>
-                <th>Destination</th>
-                <th>BU</th>
-                <th>Target New DN (MT)</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.filter(o => o.customer.toLowerCase().includes(search.toLowerCase())).map(order => (
-                <tr key={order.id}>
-                  <td>{order.customer}</td>
-                  <td>{order.destination}</td>
-                  <td>{order.buType}</td>
-                  <td>{order.targetDn}</td>
-                  <td>
-                    <button onClick={() => remove(ref(db, `orders/${order.id}`))}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div class="stat-card">
+         <h3 data-lang="total_bu19">Total BU 19</h3>
+         <div class="stat-value" id="totalBU19">
+          0 MT
+         </div>
         </div>
-      </main>
-
-      {/* Analytics Chart */}
-      <div className="p-4">
-        <Chart 
-          type="bar"
-          series={[{ name: 'DN Target', data: orders.map(o => o.targetDn) }]}
-          options={{ chart: { id: 'basic-bar' }, xaxis: { categories: orders.map(o => o.customer) }}}
-        />
+        <div class="stat-card">
+         <h3 data-lang="total_pm1">Total PM 1</h3>
+         <div class="stat-value" id="totalPM1">
+          0 MT
+         </div>
+        </div>
+        <div class="stat-card">
+         <h3>🎯 <span data-lang="total_overall">Total Overall</span></h3>
+         <div class="stat-value" id="totalOverall">
+          0 MT
+         </div>
+        </div>
+       </div><!-- Calendar -->
+       <div class="calendar-container">
+        <div class="calendar-header">
+         <h2 id="calendarMonthYear">December 2024</h2>
+         <div class="calendar-nav"><button id="prevMonth"><span data-lang="prev">← Prev</span></button> <button id="nextMonth"><span data-lang="next">Next →</span></button>
+         </div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="calendar-legend">
+         <h3>🔴 <span data-lang="holidays">Holidays &amp; Important Dates</span></h3>
+         <div id="holidaysList"></div>
+        </div>
+       </div><!-- Filters -->
+       <div class="filters">
+        <div class="filter-group"><label for="searchCustomer" data-lang="search_customer">Search Customer</label> <input type="text" id="searchCustomer" placeholder="Search...">
+        </div>
+        <div class="filter-group"><label for="filterBU" data-lang="filter_bu">Filter by BU</label> <select id="filterBU"> <option value="">All</option> <option value="BU 17">BU 17</option> <option value="CMI">CMI</option> <option value="BU 19">BU 19</option> <option value="PM 1">PM 1</option> </select>
+        </div>
+        <div class="filter-group"><label for="filterDate" data-lang="filter_date">Filter by Date</label> <input type="date" id="filterDate">
+        </div>
+        <div class="filter-group"><label for="filterMonth" data-lang="filter_month">Filter by Month</label> <select id="filterMonth"></select>
+        </div>
+        <div class="filter-group"><label for="filterYear" data-lang="filter_year">Filter by Year</label> <select id="filterYear"></select>
+        </div>
+       </div><!-- Orders Table -->
+       <div class="orders-section">
+        <div class="orders-header">
+         <h2 data-lang="recent_orders">Recent Orders</h2>
+        </div>
+        <div class="loading" id="ordersLoading">
+         <div class="spinner"></div>
+         <p data-lang="loading_orders">Loading orders...</p>
+        </div>
+        <div class="table-wrapper">
+         <table id="ordersTable">
+          <thead>
+           <tr>
+            <th data-lang="pic_sales">PIC Sales</th>
+            <th data-lang="customer">Customer</th>
+            <th data-lang="destination">Destination</th>
+            <th data-lang="bu_type">BU Type</th>
+            <th data-lang="dn_target">DN Target</th>
+            <th data-lang="date">Date</th>
+            <th data-lang="status">Status</th>
+            <th data-lang="actions">Actions</th>
+           </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+          </tbody>
+         </table>
+        </div>
+       </div>
+      </div><!-- Orders Page -->
+      <div id="ordersPage" class="page hidden">
+       <div class="orders-section">
+        <div class="orders-header">
+         <h2 data-lang="all_orders">All Orders</h2>
+        </div>
+        <div class="table-wrapper">
+         <table>
+          <thead>
+           <tr>
+            <th data-lang="pic_sales">PIC Sales</th>
+            <th data-lang="customer">Customer</th>
+            <th data-lang="destination">Destination</th>
+            <th data-lang="bu_type">BU Type</th>
+            <th data-lang="dn_target">DN Target</th>
+            <th data-lang="date">Date</th>
+            <th data-lang="status">Status</th>
+            <th data-lang="actions">Actions</th>
+           </tr>
+          </thead>
+          <tbody id="allOrdersTableBody">
+          </tbody>
+         </table>
+        </div>
+       </div>
+      </div><!-- Analytics Page -->
+      <div id="analyticsPage" class="page hidden">
+       <div class="filters" style="margin-bottom: 2rem;">
+        <div class="filter-group"><label for="analyticsMonth" data-lang="select_month">Select Month</label> <select id="analyticsMonth"></select>
+        </div>
+        <div class="filter-group"><label for="chartType" data-lang="chart_type">Chart Type</label> <select id="chartType"> <option value="bar" data-lang="bar_chart">Bar Chart</option> <option value="line" data-lang="line_chart">Line Chart</option> </select>
+        </div>
+       </div>
+       <div class="charts-grid">
+        <div class="chart-container">
+         <h3 data-lang="top_customers">Top Customers by DN Target</h3>
+         <canvas id="topCustomersChart"></canvas>
+        </div>
+        <div class="chart-container">
+         <h3 data-lang="orders_by_bu">Orders by BU Type</h3>
+         <canvas id="buTypeChart"></canvas>
+        </div>
+       </div>
+      </div><!-- Customers Page -->
+      <div id="customersPage" class="page hidden">
+       <div class="settings-section">
+        <h2 data-lang="manage_customers">Manage Custom Customers</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;" data-lang="customers_desc">Add your own customers to the database. These customers will appear in the order form alongside default customers.</p><button class="btn btn-primary" id="addCustomerBtn"><span data-lang="add_new_customer">+ Add New Customer</span></button>
+       </div>
+       <div class="orders-section" style="margin-top: 2rem;">
+        <div class="orders-header">
+         <h2 data-lang="custom_customers_list">Custom Customers List</h2>
+        </div>
+        <div class="table-wrapper">
+         <table>
+          <thead>
+           <tr>
+            <th data-lang="customer_name">Customer Name</th>
+            <th data-lang="destination">Destination</th>
+            <th data-lang="bu_type">BU Type</th>
+            <th data-lang="pic_sales">PIC Sales</th>
+            <th data-lang="actions">Actions</th>
+           </tr>
+          </thead>
+          <tbody id="customersTableBody">
+           <tr>
+            <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);" data-lang="no_customers">No custom customers yet</td>
+           </tr>
+          </tbody>
+         </table>
+        </div>
+       </div>
+      </div><!-- Settings Page -->
+      <div id="settingsPage" class="page hidden">
+       <div class="settings-section">
+        <h2 data-lang="theme_settings">Theme Settings</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.95rem;" data-lang="choose_theme">Choose your preferred theme</p>
+        <div class="theme-options">
+         <div class="theme-option active" data-theme="modern">
+          🎨 <span data-lang="modern">Modern</span>
+         </div>
+         <div class="theme-option" data-theme="dark">
+          🌙 <span data-lang="dark">Dark</span>
+         </div>
+         <div class="theme-option" data-theme="ocean">
+          🌊 <span data-lang="ocean">Ocean</span>
+         </div>
+         <div class="theme-option" data-theme="pink">
+          💗 <span data-lang="pink">Pink</span>
+         </div>
+         <div class="theme-option" data-theme="lilac">
+          💜 <span data-lang="lilac">Lilac</span>
+         </div>
+         <div class="theme-option" data-theme="green">
+          💚 <span data-lang="green">Green</span>
+         </div>
+         <div class="theme-option" data-theme="blue">
+          💙 <span data-lang="blue">Blue</span>
+         </div>
+         <div class="theme-option" data-theme="red">
+          ❤️ <span data-lang="red">Red</span>
+         </div>
+        </div>
+       </div>
+       <div class="settings-section">
+        <h2 data-lang="export_options">Export Options</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.95rem;" data-lang="download_data">Download your data in various formats</p>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;"><button class="btn btn-primary" onclick="exportData('pdf')">📄 PDF</button> <button class="btn btn-primary" onclick="exportData('excel')">📊 Excel</button> <button class="btn btn-primary" onclick="exportData('doc')">📝 DOC</button> <button class="btn btn-primary" onclick="exportData('ppt')">📊 PPT</button> <button class="btn btn-primary" onclick="exportData('jpg')">🖼️ JPG</button> <button class="btn btn-primary" onclick="exportData('png')">🖼️ PNG</button>
+        </div>
+       </div>
+       <div class="settings-section">
+        <h2 data-lang="print_options">Print Options</h2>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;"><button class="btn btn-secondary" onclick="printPreview()"><span data-lang="print_preview">👁️ Print Preview</span></button> <button class="btn btn-secondary" onclick="window.print()"><span data-lang="print">🖨️ Print</span></button>
+        </div>
+       </div>
       </div>
+     </main>
     </div>
-  );
-}
+   </div><!-- Add Order Modal -->
+   <div id="addOrderModal" class="modal">
+    <div class="modal-content">
+     <div class="modal-header">
+      <h2 data-lang="add_new_order">Add New Order</h2><button class="close-btn" onclick="closeModal('addOrderModal')">×</button>
+     </div>
+     <form id="addOrderForm">
+      <div class="form-group"><label for="buType"><span data-lang="bu_type">BU Type</span> *</label> <select id="buType" required> <option value="" data-lang="select_bu_type">Select BU Type</option> <option value="BU 17">BU 17</option> <option value="CMI">CMI</option> <option value="BU 19">BU 19</option> <option value="PM 1">PM 1</option> </select>
+      </div>
+      <div class="form-group"><label for="customerName"><span data-lang="customer_name">Customer Name</span> *</label> <select id="customerName" required></select>
+      </div>
+      <div class="form-group"><label for="picSales" data-lang="pic_sales">PIC Sales</label> <input type="text" id="picSales" readonly>
+      </div>
+      <div class="form-group"><label for="destination"><span data-lang="destination">Destination</span> *</label> <input type="text" id="destination" readonly required>
+      </div>
+      <div class="form-group"><label for="dnTarget"><span data-lang="dn_target">DN Target</span> (MT) *</label> <input type="number" id="dnTarget" step="0.01" required>
+      </div>
+      <div class="form-group"><label for="orderDate"><span data-lang="order_date">Order Date</span> *</label> <input type="date" id="orderDate" required>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;"><button type="button" class="btn btn-secondary" onclick="closeModal('addOrderModal')" data-lang="cancel">Cancel</button> <button type="submit" class="btn btn-primary" id="submitOrderBtn" data-lang="add_order_btn">Add Order</button>
+      </div>
+     </form>
+    </div>
+   </div><!-- Edit Order Modal -->
+   <div id="editOrderModal" class="modal">
+    <div class="modal-content">
+     <div class="modal-header">
+      <h2 data-lang="edit_order">Edit Order</h2><button class="close-btn" onclick="closeModal('editOrderModal')">×</button>
+     </div>
+     <form id="editOrderForm"><input type="hidden" id="editOrderBackendId">
+      <div class="form-group"><label for="editBuType"><span data-lang="bu_type">BU Type</span> *</label> <select id="editBuType" required> <option value="BU 17">BU 17</option> <option value="CMI">CMI</option> <option value="BU 19">BU 19</option> <option value="PM 1">PM 1</option> </select>
+      </div>
+      <div class="form-group"><label for="editCustomerName"><span data-lang="customer_name">Customer Name</span> *</label> <input type="text" id="editCustomerName" required>
+      </div>
+      <div class="form-group"><label for="editPicSales" data-lang="pic_sales">PIC Sales</label> <input type="text" id="editPicSales">
+      </div>
+      <div class="form-group"><label for="editDestination"><span data-lang="destination">Destination</span> *</label> <input type="text" id="editDestination" required>
+      </div>
+      <div class="form-group"><label for="editDnTarget"><span data-lang="dn_target">DN Target</span> (MT) *</label> <input type="number" id="editDnTarget" step="0.01" required>
+      </div>
+      <div class="form-group"><label for="editOrderDate"><span data-lang="order_date">Order Date</span> *</label> <input type="date" id="editOrderDate" required>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;"><button type="button" class="btn btn-secondary" onclick="closeModal('editOrderModal')" data-lang="cancel">Cancel</button> <button type="submit" class="btn btn-primary" id="updateOrderBtn" data-lang="update_order">Update Order</button>
+      </div>
+     </form>
+    </div>
+   </div><!-- Add Customer Modal -->
+   <div id="addCustomerModal" class="modal">
+    <div class="modal-content">
+     <div class="modal-header">
+      <h2 data-lang="add_new_customer">Add New Customer</h2><button class="close-btn" onclick="closeModal('addCustomerModal')">×</button>
+     </div>
+     <form id="addCustomerForm">
+      <div class="form-group"><label for="newCustomerName"><span data-lang="customer_name">Customer Name</span> *</label> <input type="text" id="newCustomerName" required placeholder="Enter customer name">
+      </div>
+      <div class="form-group"><label for="newCustomerDestination"><span data-lang="destination">Destination</span> *</label> <input type="text" id="newCustomerDestination" required placeholder="Enter destination">
+      </div>
+      <div class="form-group"><label for="newCustomerBU"><span data-lang="bu_type">BU Type</span> *</label> <select id="newCustomerBU" required> <option value="">Select BU Type</option> <option value="BU 17">BU 17</option> <option value="CMI">CMI</option> <option value="BU 19">BU 19</option> <option value="PM 1">PM 1</option> </select>
+      </div>
+      <div class="form-group"><label for="newCustomerPIC"><span data-lang="pic_sales">PIC Sales</span> (Optional for BU 17)</label> <input type="text" id="newCustomerPIC" placeholder="Enter PIC Sales name">
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;"><button type="button" class="btn btn-secondary" onclick="closeModal('addCustomerModal')" data-lang="cancel">Cancel</button> <button type="submit" class="btn btn-primary" id="submitCustomerBtn" data-lang="add_customer">Add Customer</button>
+      </div>
+     </form>
+    </div>
+   </div><!-- Edit Customer Modal -->
+   <div id="editCustomerModal" class="modal">
+    <div class="modal-content">
+     <div class="modal-header">
+      <h2 data-lang="edit_customer">Edit Customer</h2><button class="close-btn" onclick="closeModal('editCustomerModal')">×</button>
+     </div>
+     <form id="editCustomerForm"><input type="hidden" id="editCustomerBackendId">
+      <div class="form-group"><label for="editCustomerName"><span data-lang="customer_name">Customer Name</span> *</label> <input type="text" id="editCustomerName" required>
+      </div>
+      <div class="form-group"><label for="editCustomerDestination"><span data-lang="destination">Destination</span> *</label> <input type="text" id="editCustomerDestination" required>
+      </div>
+      <div class="form-group"><label for="editCustomerBU"><span data-lang="bu_type">BU Type</span> *</label> <select id="editCustomerBU" required> <option value="BU 17">BU 17</option> <option value="CMI">CMI</option> <option value="BU 19">BU 19</option> <option value="PM 1">PM 1</option> </select>
+      </div>
+      <div class="form-group"><label for="editCustomerPIC" data-lang="pic_sales">PIC Sales</label> <input type="text" id="editCustomerPIC">
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;"><button type="button" class="btn btn-secondary" onclick="closeModal('editCustomerModal')" data-lang="cancel">Cancel</button> <button type="submit" class="btn btn-primary" id="updateCustomerBtn" data-lang="update_customer">Update Customer</button>
+      </div>
+     </form>
+    </div>
+   </div><!-- Send Email Modal -->
+   <div id="sendEmailModal" class="modal">
+    <div class="modal-content">
+     <div class="modal-header">
+      <h2 data-lang="send_email">📧 Send Email</h2><button class="close-btn" onclick="closeModal('sendEmailModal')">×</button>
+     </div>
+     <form id="sendEmailForm">
+      <div class="form-group"><label for="emailPlatform"><span data-lang="email_platform">Email Platform</span> *</label> <select id="emailPlatform" required> <option value="gmail">Gmail</option> <option value="outlook">Outlook</option> <option value="teams">Microsoft Teams</option> </select>
+      </div>
+      <div class="form-group"><label for="emailTo"><span data-lang="to">To</span> *</label> <input type="email" id="emailTo" placeholder="Enter email and press Enter" required>
+       <div class="email-recipients" id="toRecipients"></div>
+      </div>
+      <div class="form-group"><label for="emailCc"><span data-lang="cc">CC</span></label> <input type="email" id="emailCc" placeholder="Enter email and press Enter">
+       <div class="email-recipients" id="ccRecipients"></div>
+      </div>
+      <div class="form-group"><label for="emailSubject"><span data-lang="subject">Subject</span> *</label> <input type="text" id="emailSubject" value="Report DN Order - IKK" required>
+      </div>
+      <div class="form-group"><label for="emailRemarks"><span data-lang="remarks">Remarks</span></label> <textarea id="emailRemarks" placeholder="Please find attach Report DN...">Please find attach Report DN</textarea>
+      </div>
+      <div class="form-group"><label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;"> <input type="checkbox" id="attachOrders" checked style="width: auto;"> <span data-lang="attach_orders">Attach Order List (Excel)</span> </label>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;"><button type="button" class="btn btn-secondary" onclick="closeModal('sendEmailModal')" data-lang="cancel">Cancel</button> <button type="submit" class="btn btn-success" id="sendEmailSubmitBtn"><span data-lang="send">📧 Send Email</span></button>
+      </div>
+     </form>
+    </div>
+   </div><!-- Download Modal -->
+   <div id="downloadModal" class="modal">
+    <div class="modal-content">
+     <div class="modal-header">
+      <h2 data-lang="download_options">Download Options</h2><button class="close-btn" onclick="closeModal('downloadModal')">×</button>
+     </div>
+     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;"><button class="btn btn-primary" onclick="exportData('pdf')">📄 PDF</button> <button class="btn btn-primary" onclick="exportData('excel')">📊 Excel</button> <button class="btn btn-primary" onclick="exportData('doc')">📝 DOC</button> <button class="btn btn-primary" onclick="exportData('ppt')">📊 PPT</button> <button class="btn btn-primary" onclick="exportData('jpg')">🖼️ JPG</button> <button class="btn btn-primary" onclick="exportData('png')">🖼️ PNG</button>
+     </div>
+    </div>
+   </div><!-- Toast -->
+   <div id="toast" class="toast"></div>
+  </div>
+  <script>
+    // TRANSLATIONS
+    const translations = {
+      en: {
+        offline: "Offline Mode",
+        add_order: "+ Add Order",
+        send_email: "📧 Send Email",
+        download: "📥 Download",
+        dashboard: "Dashboard",
+        orders_list: "Orders List",
+        analytics: "Analytics",
+        customers: "Customers",
+        settings: "Settings",
+        total_bu17: "Total BU 17",
+        total_cmi: "Total CMI",
+        total_bu19: "Total BU 19",
+        total_pm1: "Total PM 1",
+        total_overall: "Total Overall",
+        prev: "← Prev",
+        next: "Next →",
+        holidays: "Holidays & Important Dates",
+        search_customer: "Search Customer",
+        filter_bu: "Filter by BU",
+        filter_date: "Filter by Date",
+        filter_month: "Filter by Month",
+        filter_year: "Filter by Year",
+        recent_orders: "Recent Orders",
+        loading_orders: "Loading orders...",
+        pic_sales: "PIC Sales",
+        customer: "Customer",
+        destination: "Destination",
+        bu_type: "BU Type",
+        dn_target: "DN Target",
+        date: "Date",
+        status: "Status",
+        actions: "Actions",
+        all_orders: "All Orders",
+        select_month: "Select Month",
+        chart_type: "Chart Type",
+        bar_chart: "Bar Chart",
+        line_chart: "Line Chart",
+        top_customers: "Top Customers by DN Target",
+        orders_by_bu: "Orders by BU Type",
+        manage_customers: "Manage Custom Customers",
+        customers_desc: "Add your own customers to the database. These customers will appear in the order form alongside default customers.",
+        add_new_customer: "+ Add New Customer",
+        custom_customers_list: "Custom Customers List",
+        customer_name: "Customer Name",
+        no_customers: "No custom customers yet",
+        theme_settings: "Theme Settings",
+        choose_theme: "Choose your preferred theme",
+        modern: "Modern",
+        dark: "Dark",
+        ocean: "Ocean",
+        pink: "Pink",
+        lilac: "Lilac",
+        green: "Green",
+        blue: "Blue",
+        red: "Red",
+        export_options: "Export Options",
+        download_data: "Download your data in various formats",
+        print_options: "Print Options",
+        print_preview: "👁️ Print Preview",
+        print: "🖨️ Print",
+        add_new_order: "Add New Order",
+        select_bu_type: "Select BU Type",
+        order_date: "Order Date",
+        cancel: "Cancel",
+        add_order_btn: "Add Order",
+        edit_order: "Edit Order",
+        update_order: "Update Order",
+        edit_customer: "Edit Customer",
+        add_customer: "Add Customer",
+        update_customer: "Update Customer",
+        download_options: "Download Options",
+        email_platform: "Email Platform",
+        to: "To",
+        cc: "CC",
+        subject: "Subject",
+        remarks: "Remarks",
+        attach_orders: "Attach Order List (Excel)",
+        send: "📧 Send Email"
+      },
+      id: {
+        offline: "Mode Offline",
+        add_order: "+ Tambah Pesanan",
+        send_email: "📧 Kirim Email",
+        download: "📥 Unduh",
+        dashboard: "Dasbor",
+        orders_list: "Daftar Pesanan",
+        analytics: "Analitik",
+        customers: "Pelanggan",
+        settings: "Pengaturan",
+        total_bu17: "Total BU 17",
+        total_cmi: "Total CMI",
+        total_bu19: "Total BU 19",
+        total_pm1: "Total PM 1",
+        total_overall: "Total Keseluruhan",
+        prev: "← Sebelumnya",
+        next: "Berikutnya →",
+        holidays: "Hari Libur & Tanggal Penting",
+        search_customer: "Cari Pelanggan",
+        filter_bu: "Filter berdasarkan BU",
+        filter_date: "Filter berdasarkan Tanggal",
+        filter_month: "Filter berdasarkan Bulan",
+        filter_year: "Filter berdasarkan Tahun",
+        recent_orders: "Pesanan Terbaru",
+        loading_orders: "Memuat pesanan...",
+        pic_sales: "PIC Sales",
+        customer: "Pelanggan",
+        destination: "Tujuan",
+        bu_type: "Tipe BU",
+        dn_target: "Target DN",
+        date: "Tanggal",
+        status: "Status",
+        actions: "Aksi",
+        all_orders: "Semua Pesanan",
+        select_month: "Pilih Bulan",
+        chart_type: "Tipe Grafik",
+        bar_chart: "Grafik Batang",
+        line_chart: "Grafik Garis",
+        top_customers: "Pelanggan Teratas berdasarkan Target DN",
+        orders_by_bu: "Pesanan berdasarkan Tipe BU",
+        manage_customers: "Kelola Pelanggan Kustom",
+        customers_desc: "Tambahkan pelanggan Anda sendiri ke database.",
+        add_new_customer: "+ Tambah Pelanggan Baru",
+        custom_customers_list: "Daftar Pelanggan Kustom",
+        customer_name: "Nama Pelanggan",
+        no_customers: "Belum ada pelanggan kustom",
+        theme_settings: "Pengaturan Tema",
+        choose_theme: "Pilih tema yang Anda sukai",
+        modern: "Modern",
+        dark: "Gelap",
+        ocean: "Laut",
+        pink: "Pink",
+        lilac: "Ungu Muda",
+        green: "Hijau",
+        blue: "Biru",
+        red: "Merah",
+        export_options: "Opsi Ekspor",
+        download_data: "Unduh data Anda dalam berbagai format",
+        print_options: "Opsi Cetak",
+        print_preview: "👁️ Pratinjau Cetak",
+        print: "🖨️ Cetak",
+        add_new_order: "Tambah Pesanan Baru",
+        select_bu_type: "Pilih Tipe BU",
+        order_date: "Tanggal Pesanan",
+        cancel: "Batal",
+        add_order_btn: "Tambah Pesanan",
+        edit_order: "Edit Pesanan",
+        update_order: "Perbarui Pesanan",
+        edit_customer: "Edit Pelanggan",
+        add_customer: "Tambah Pelanggan",
+        update_customer: "Perbarui Pelanggan",
+        download_options: "Opsi Unduh",
+        email_platform: "Platform Email",
+        to: "Kepada",
+        cc: "CC",
+        subject: "Subjek",
+        remarks: "Catatan",
+        attach_orders: "Lampirkan Daftar Pesanan (Excel)",
+        send: "📧 Kirim Email"
+      },
+      th: {
+        offline: "โหมดออฟไลน์",
+        add_order: "+ เพิ่มคำสั่งซื้อ",
+        send_email: "📧 ส่งอีเมล",
+        download: "📥 ดาวน์โหลด",
+        dashboard: "แดชบอร์ด",
+        orders_list: "รายการคำสั่งซื้อ",
+        analytics: "การวิเคราะห์",
+        customers: "     ูกค้า",
+        settings: "การตั้งค่า",
+        total_bu17: "รวม BU 17",
+        total_cmi: "รวม CMI",
+        total_bu19: "รวม BU 19",
+        total_pm1: "รวม PM 1",
+        total_overall: "รวมทั้งหมด",
+        prev: "← ก่อนหน้า",
+        next: "ถัดไป →",
+        holidays: "วันหยุดและวันสำคัญ",
+        search_customer: "ค้นหาลูกค้า",
+        filter_bu: "กรองตาม BU",
+        filter_date: "กรองตามวันที่",
+        filter_month: "กรองตามเดือน",
+        filter_year: "กรองตามปี",
+        recent_orders: "คำสั่งซื้อล่าสุด",
+        loading_orders: "กำลังโหลดคำสั่งซื้อ...",
+        pic_sales: "PIC Sales",
+        customer: "ลูกค้า",
+        destination: "ปลายทาง",
+        bu_type: "ป  ะเภท BU",
+        dn_target: "เป้าหมาย DN",
+        date: "วันที่",
+        status: "สถานะ",
+        actions: "การดำเนินการ",
+        email_platform: "แพลตฟอร์มอีเมล",
+        to: "ถึง",
+        cc: "สำเนาถึง",
+        subject: "หัวข้อ",
+        remarks: "หมายเหตุ",
+        attach_orders: "แนบรายการคำสั่งซื้อ (Excel)",
+        send: "📧 ส่งอีเมล"
+      },
+      zh: {
+        offline: "离线模式",
+        add_order: "+ 添加订单",
+        send_email: "📧 发送邮件",
+        download: "📥 下载",
+        dashboard: "仪表板",
+        orders_list: "订单列表",
+        analytics: "分析",
+        customers: "客户",
+        settings: "设置",
+        total_bu17: "BU 17 总计",
+        total_cmi: "CMI 总计",
+        total_bu19: "BU 19 总计",
+        total_pm1: "PM 1 总计",
+        total_overall: "总计",
+        prev: "←   一   ",
+        next: "下一个 →",
+        holidays: "假期和重要日期",
+        email_platform: "电子邮件平台",
+        to: "收件人",
+        cc: "抄送",
+        subject: "主题",
+        remarks: "备注",
+        attach_orders: "附加订单列表 (Excel)",
+        send: "📧 发送邮件"
+      },
+      ja: {
+        offline: "オフラインモード",
+        add_order: "+ 注文を追加",
+        send_email: "📧 メール送信",
+        download: "📥 ダウンロード",
+        dashboard: "ダッシュボード",
+        orders_list: "注文リスト",
+        analytics: "分析",
+        customers: "顧客",
+        settings: "設定",
+        email_platform: "メールプラットフォーム",
+        to: "宛先",
+        cc: "CC",
+        subject: "件名",
+        remarks: "備考",
+        attach_orders: "注文リストを添付 (Excel)",
+        send: "📧 メール送信"
+      },
+      ko: {
+        offline: "오프라인 모드",
+        add_order: "+ 주문 추가",
+        send_email: "📧 이메일 보내기",
+        download: "📥 다운로드",
+        dashboard: "대시보드",
+        orders_list: "주문 목록",
+        analytics: "분석",
+        customers: "고객",
+        settings: "설정",
+        email_platform: "이메일 플랫폼",
+        to: "받는 사람",
+        cc: "참조",
+        subject: "제목",
+        remarks: "비고",
+        attach_orders: "주문 목록 첨부 (Excel)",
+        send: "📧 이메일 보내기"
+      }
+    };
 
-// Struktur Data Tema di Settings
-const themes = {
-  professional: {
-    primary: "#1e293b", // Slate 800
-    secondary: "#f8fafc",
-    text: "#000000",
-    font: "Inter, sans-serif"
-  },
-  cherry: {
-    primary: "#ff4d6d", // Cherry Pink
-    secondary: "#fff0f3",
-    text: "#590d22",
-    font: "Poppins, sans-serif"
-  },
-  anime: {
-    primary: "#6d5dfc", 
-    secondary: "#e4e7ee",
-    text: "#2d3436",
-    font: "Comic Sans MS, cursive",
-    background: "url('anime-bg.jpg')"
-  }
-};
+    let currentLanguage = 'en';
+
+    function applyTranslations(lang) {
+      const elements = document.querySelectorAll('[data-lang]');
+      elements.forEach(el => {
+        const key = el.getAttribute('data-lang');
+        if (translations[lang] && translations[lang][key]) {
+          el.textContent = translations[lang][key];
+        }
+      });
+      currentLanguage = lang;
+    }
+
+    document.getElementById('languageSelector').addEventListener('change', (e) => {
+      applyTranslations(e.target.value);
+      showToast('🌐 Language changed successfully', 'success');
+    });
+
+    // OFFLINE/ONLINE DETECTION
+    window.addEventListener('online', () => {
+      document.getElementById('offlineIndicator').classList.remove('show');
+      showToast('    Back online! Data will sync automatically.', 'success');
+    });
+    
+    window.addEventListener('offline', () => {
+      document.getElementById('offlineIndicator').classList.add('show');
+      showToast('📵 You are offline. Changes will be saved locally.', 'error');
+    });
+
+    // Customer data with PIC Sales (CMI ONLY)
+    const CUSTOMERS_DATA_CMI = [
+      // SORAYA - JABODETABEK & LUAR JABODETABEK
+      { pic: "SORAYA", customer: "CIPTA MULTI BUANA PERKASA, PT", destination: "JAKARTA BARAT" },
+      { pic: "SORAYA", customer: "DAYACIPTA KEMASINDO, PT (GD) CIBITUNG", destination: "BEKASI TIMUR" },
+      { pic: "SORAYA", customer: "PT DAYACIPTA KEMASINDO", destination: "KOTA TANGERANG BANTEN" },
+      { pic: "SORAYA", customer: "PT. HEXA PRIMA PERSADA", destination: "TANGERANG" },
+      { pic: "SORAYA", customer: "SENTRALINDO TEGUH GEMILANG, PT (GD)", destination: "CIKARANG" },
+      { pic: "SORAYA", customer: "PT SENTRALINDO TEGUH GEMILANG", destination: "BEKASI" },
+      { pic: "SORAYA", customer: "PT. TRISTAR MAKMUR KARTONINDO, GD", destination: "CIKARANG PUSAT - BEKASI" },
+      { pic: "SORAYA", customer: "DAYACIPTA KEMASINDO, PT (GD) KARAWANG", destination: "KARAWANG" },
+      { pic: "SORAYA", customer: "PT.MODERN MULTI KEMASINDO", destination: "TANGERANG" },
+      
+      // IBRAHIM - JABODETABEK & LUAR JABODETABEK
+      { pic: "IBRAHIM", customer: "MULTI ARTHA ABADI, PT", destination: "TANGERANG" },
+      { pic: "IBRAHIM", customer: "PT. KEMASAN INDAH SEJAHTERA", destination: "BANTEN" },
+      { pic: "IBRAHIM", customer: "PT ADINA MULTI WAHANA", destination: "KOTA TANGERANG BANTEN" },
+      { pic: "IBRAHIM", customer: "SETIAJAYA KEMASINDO MADYA, PT", destination: "KOTA TANGERANG" },
+      { pic: "IBRAHIM", customer: "PT PANCAMITRA PACKINDO", destination: "TANGERANG BANTEN" },
+      { pic: "IBRAHIM", customer: "PT. SATYAMITRA KEMAS LESTARI TBK", destination: "TANGERANG" },
+      
+      // KARTIKA / DAVID - JABODETABEK & LUAR JABODETABEK
+      { pic: "KARTIKA / DAVID", customer: "PT. GLOBAL PAPYRUS SEMESTA", destination: "BANDUNG" },
+      { pic: "KARTIKA / DAVID", customer: "PT. GLOBAL PAPYRUS SEMESTA", destination: "JAKARTA BARAT" },
+      { pic: "KARTIKA / DAVID", customer: "PT.OJI SINAR MAS PACKAGING", destination: "CIKARANG PUSAT.KAB BEKASI" },
+      
+      // MEIRAND ANDRE - JABODETABEK & LUAR JABODETABEK
+      { pic: "MEIRAND ANDRE", customer: "MULTIBOX INDAH, PT", destination: "DESA KAREO-TANGERANG" },
+      { pic: "MEIRAND ANDRE", customer: "PT KARYA INDAH MULTIGUNA", destination: "KOTA BEKASI JAWA BARAT" },
+      { pic: "MEIRAND ANDRE", customer: "PT. PUTRA UNIVERSAL CORRUGATED", destination: "TANGERANG" },
+      { pic: "MEIRAND ANDRE", customer: "PT.CARTONINDUS SUMBERJAYA", destination: "BANTEN" },
+      { pic: "MEIRAND ANDRE", customer: "PT MALINDO IRFAN / BEKASI", destination: "BEKASI" },
+      
+      // CALVIN - LUAR JABODETABEK
+      { pic: "CALVIN", customer: "PABOXIN,PT", destination: "JAWA TIMUR" },
+      { pic: "CALVIN", customer: "DEVASH SUKSES FOREVER", destination: "GRESIK" },
+      { pic: "CALVIN", customer: "PT QINGDA MASPION PAPER PRODUCTS", destination: "SIDOARJO" },
+      { pic: "CALVIN", customer: "PT. GLOBAL PAPYRUS SEMESTA", destination: "SEMARANG" },
+      { pic: "CALVIN", customer: "PT. WIJAYA SANTOSA BOX", destination: "SIDOARJO" },
+      { pic: "CALVIN", customer: "PT. SARANA PACKAGING AGRAPANA  (GD)", destination: "LAMONGAN" },
+      { pic: "CALVIN", customer: "PT.SANTOSO JAWI (GD)", destination: "SIDOARJO" },
+      { pic: "CALVIN", customer: "PT. ZINYANG INDONESIA", destination: "KAB.BOYOLALI" },
+      { pic: "CALVIN", customer: "SURYA PRIMA SEMESTA,PT", destination: "SIDOARJO" },
+      
+      // SELVI HARTATIK - LUAR JABODETABEK
+      { pic: "SELVI HARTATIK", customer: "PT. Cakrawala Cemerlang Box", destination: "KAB. MOJOKERTO" },
+      { pic: "SELVI HARTATIK", customer: "PT. KEDAWUNG SETIA CORRUGATED CARTON BOX INDUSTRIAL", destination: "KARANGPILANG, SURABAYA" },
+      { pic: "SELVI HARTATIK", customer: "PT.SENTRAL KEMASINDO TEGUH", destination: "GRESIK" },
+      { pic: "SELVI HARTATIK", customer: "PT. KARYA WANGSA INVESTAMA", destination: "KAB. KENDAL JAWA TENGAH" },
+      { pic: "SELVI HARTATIK", customer: "JAWASURYA KENCANAINDAH, PT", destination: "SEMARANG" },
+      { pic: "SELVI HARTATIK", customer: "PT.ANUGRAH ANEKABOX", destination: "GRESIK" },
+      { pic: "SELVI HARTATIK", customer: "PT SUPRACOR SEJAHTERA", destination: "MOJOKERTO" },
+      
+      // OKTAVIA CHRISTINA - LUAR JABODETABEK
+      { pic: "OKTAVIA CHRISTINA", customer: "PT. UNIVERSAL JASA KEMAS (GD)", destination: "PASURUAN" },
+      { pic: "OKTAVIA CHRISTINA", customer: "PT. UNIVERSAL JASA KEMAS", destination: "PASURUAN" },
+      { pic: "OKTAVIA CHRISTINA", customer: "PT.MULIA GRAND MANUFACTURE", destination: "GRESIK" },
+      { pic: "OKTAVIA CHRISTINA", customer: "PT.SURINDO TEGUH GEMILANG", destination: "GRESIK" },
+      { pic: "OKTAVIA CHRISTINA", customer: "SURINDO TEGUH GEMILANG, PT (GD)", destination: "GRESIK" },
+      { pic: "OKTAVIA CHRISTINA", customer: "PT. SARI INDAH PEMBUNGKUS INDUSTRI", destination: "MAKASSAR" },
+      { pic: "OKTAVIA CHRISTINA", customer: "PT SINAR GARUDA MAKMURINDO", destination: "GRESIK" },
+      
+      // ANITA - LUAR JABODETABEK
+      { pic: "ANITA", customer: "PT.MITRACITRA MANDIRIOFFSET", destination: "SIDOARJO" },
+      { pic: "ANITA", customer: "MITRACITRA MANDIRIOFFSET, PT (GD)", destination: "MOJOKERTO" }
+    ];
+    
+    // BU 17 Destination Options
+    const BU17_DESTINATIONS = [
+      { customer: "APP Batam", destination: "BATAM" },
+      { customer: "PEP Bawen", destination: "BAWEN" },
+      { customer: "PEP Demak", destination: "DEMAK" },
+      { customer: "PEP Bandung", destination: "BANDUNG" },
+      { customer: "PEP Subang", destination: "SUBANG / PURWAKARTA" },
+      { customer: "PD Karawang 3", destination: "KARAWANG" },
+      { customer: "KKM Karawaci", destination: "KARAWACI / TANGERANG" },
+      { customer: "KKM Cikarang", destination: "CIKARANG UTARA" },
+      { customer: "KKM Medan (KKM 1)", destination: "MEDAN" },
+      { customer: "KMA Lampung", destination: "LAMPUNG" },
+      { customer: "PGC Bogor", destination: "BOGOR" },
+      { customer: "Tjiwi Kimia", destination: "MOJOKERTO" },
+      { customer: "IKK", destination: "KARAWANG" },
+      { customer: "KKM Medan (KKM 2)", destination: "MEDAN" }
+    ];
+
+    // State
+    let allOrders = [];
+    let customCustomers = [];
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let currentTheme = 'modern';
+    let topCustomersChart = null;
+    let buTypeChart = null;
+    let currentEditingOrder = null;
+    let currentEditingCustomer = null;
+    let toEmails = [];
+    let ccEmails = [];
+
+    // Default config for Element SDK
+    const defaultConfig = {
+      dashboard_title: "ORDER DN IKK",
+      company_subtitle: "INDAH KIAT KARAWANG"
+    };
+
+    // Holidays data
+    function generateHolidays() {
+      const holidays = {};
+      
+      for (let year = 2024; year <= 2090; year++) {
+        holidays[`${year}-01-01`] = 'New Year';
+        holidays[`${year}-05-01`] = 'Labor Day';
+        holidays[`${year}-06-01`] = 'Pancasila Day';
+        holidays[`${year}-08-17`] = 'Independence Day';
+        holidays[`${year}-10-28`] = 'Youth Pledge Day';
+        holidays[`${year}-10-31`] = 'Halloween';
+        holidays[`${year}-12-22`] = 'Mother\'s Day';
+        holidays[`${year}-12-25`] = 'Christmas Day';
+      }
+      
+      const islamicHolidays = [
+        { name: 'Isra Mi\'raj', start: new Date('2024-02-08') },
+        { name: 'Ramadan Begins', start: new Date('2024-03-11') },
+        { name: 'Eid al-Fitr', start: new Date('2024-04-10') },
+        { name: 'Eid al-Adha', start: new Date('2024-06-17') },
+        { name: 'Islamic New Year', start: new Date('2024-07-07') },
+        { name: 'Maulid Nabi Muhammad', start: new Date('2024-09-16') }
+      ];
+      
+      islamicHolidays.forEach(holiday => {
+        let currentDate = new Date(holiday.start);
+        for (let year = 2024; year <= 2090; year++) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+          holidays[dateStr] = holiday.name;
+          
+          if (holiday.name === 'Eid al-Fitr') {
+            const nextDay = new Date(currentDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            holidays[nextDay.toISOString().split('T')[0]] = 'Eid Holiday';
+            
+            const dayAfter = new Date(currentDate);
+            dayAfter.setDate(dayAfter.getDate() + 2);
+            holidays[dayAfter.toISOString().split('T')[0]] = 'Eid Holiday';
+          }
+          
+          currentDate.setDate(currentDate.getDate() - 355);
+        }
+      });
+      
+      const imlek2024 = new Date('2024-02-10');
+      for (let year = 2024; year <= 2090; year++) {
+        const yearDiff = year - 2024;
+        const daysOffset = yearDiff * 354;
+        const imlekDate = new Date(imlek2024);
+        imlekDate.setDate(imlekDate.getDate() + daysOffset);
+        
+        if (imlekDate.getMonth() > 2) {
+          imlekDate.setFullYear(imlekDate.getFullYear() + 1);
+          imlekDate.setMonth(0);
+        }
+        
+        holidays[imlekDate.toISOString().split('T')[0]] = 'Chinese New Year';
+      }
+      
+      for (let year = 2024; year <= 2090; year++) {
+        const goodFriday = calculateEaster(year);
+        goodFriday.setDate(goodFriday.getDate() - 2);
+        holidays[goodFriday.toISOString().split('T')[0]] = 'Good Friday';
+        
+        const ascension = calculateEaster(year);
+        ascension.setDate(ascension.getDate() + 39);
+        holidays[ascension.toISOString().split('T')[0]] = 'Ascension Day';
+      }
+      
+      const waisak2024 = new Date('2024-05-23');
+      for (let year = 2024; year <= 2090; year++) {
+        const waisakDate = new Date(waisak2024);
+        waisakDate.setFullYear(year);
+        holidays[waisakDate.toISOString().split('T')[0]] = 'Vesak Day';
+      }
+      
+      for (let year = 2024; year <= 2090; year++) {
+        holidays[`${year}-12-26`] = 'Christmas Holiday';
+      }
+      
+      return holidays;
+    }
+    
+    function calculateEaster(year) {
+      const a = year % 19;
+      const b = Math.floor(year / 100);
+      const c = year % 100;
+      const d = Math.floor(b / 4);
+      const e = b % 4;
+      const f = Math.floor((b + 8) / 25);
+      const g = Math.floor((b - f + 1) / 3);
+      const h = (19 * a + b - d - g + 15) % 30;
+      const i = Math.floor(c / 4);
+      const k = c % 4;
+      const l = (32 + 2 * e + 2 * i - h - k) % 7;
+      const m = Math.floor((a + 11 * h + 22 * l) / 451);
+      const month = Math.floor((h + l - 7 * m + 114) / 31);
+      const day = ((h + l - 7 * m + 114) % 31) + 1;
+      
+      return new Date(year, month - 1, day);
+    }
+    
+    const HOLIDAYS = generateHolidays();
+
+    // Initialize Element SDK
+    async function initElementSdk() {
+      if (window.elementSdk) {
+        await window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            const title = document.getElementById('dashboardTitle');
+            const subtitle = document.getElementById('companySubtitle');
+            
+            if (title) title.textContent = config.dashboard_title || defaultConfig.dashboard_title;
+            if (subtitle) subtitle.textContent = config.company_subtitle || defaultConfig.company_subtitle;
+          },
+          mapToCapabilities: (config) => ({
+            recolorables: [],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ["dashboard_title", config.dashboard_title || defaultConfig.dashboard_title],
+            ["company_subtitle", config.company_subtitle || defaultConfig.company_subtitle]
+          ])
+        });
+      }
+    }
+
+    // Initialize Data SDK
+    const dataHandler = {
+      onDataChanged(data) {
+        allOrders = data.filter(item => !item.is_customer).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        customCustomers = data.filter(item => item.is_customer);
+        
+        renderOrders();
+        renderCalendar();
+        updateAnalytics();
+        updateStatistics();
+        renderCustomersTable();
+      }
+    };
+
+    async function initDataSdk() {
+      const result = await window.dataSdk.init(dataHandler);
+      if (!result.isOk) {
+        showToast('❌ Failed to initialize data system', 'error');
+      }
+    }
+
+    // Email Management
+    function addEmailTag(email, type) {
+      const container = type === 'to' ? document.getElementById('toRecipients') : document.getElementById('ccRecipients');
+      const emailList = type === 'to' ? toEmails : ccEmails;
+      
+      if (!emailList.includes(email)) {
+        emailList.push(email);
+        
+        const tag = document.createElement('div');
+        tag.className = 'email-tag';
+        tag.innerHTML = `
+          ${email}
+          <button type="button" onclick="removeEmailTag('${email}', '${type}')">&times;</button>
+        `;
+        container.appendChild(tag);
+      }
+    }
+
+    function removeEmailTag(email, type) {
+      if (type === 'to') {
+        toEmails = toEmails.filter(e => e !== email);
+      } else {
+        ccEmails = ccEmails.filter(e => e !== email);
+      }
+      renderEmailTags();
+    }
+
+    function renderEmailTags() {
+      const toContainer = document.getElementById('toRecipients');
+      const ccContainer = document.getElementById('ccRecipients');
+      
+      toContainer.innerHTML = '';
+      ccContainer.innerHTML = '';
+      
+      toEmails.forEach(email => {
+        const tag = document.createElement('div');
+        tag.className = 'email-tag';
+        tag.innerHTML = `${email} <button type="button" onclick="removeEmailTag('${email}', 'to')">&times;</button>`;
+        toContainer.appendChild(tag);
+      });
+      
+      ccEmails.forEach(email => {
+        const tag = document.createElement('div');
+        tag.className = 'email-tag';
+        tag.innerHTML = `${email} <button type="button" onclick="removeEmailTag('${email}', 'cc')">&times;</button>`;
+        ccContainer.appendChild(tag);
+      });
+    }
+
+    document.getElementById('emailTo').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const email = e.target.value.trim();
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          addEmailTag(email, 'to');
+          e.target.value = '';
+        }
+      }
+    });
+
+    document.getElementById('emailCc').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const email = e.target.value.trim();
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          addEmailTag(email, 'cc');
+          e.target.value = '';
+        }
+      }
+    });
+
+    document.getElementById('sendEmailBtn').addEventListener('click', () => {
+      toEmails = [];
+      ccEmails = [];
+      renderEmailTags();
+      document.getElementById('emailTo').value = '';
+      document.getElementById('emailCc').value = '';
+      openModal('sendEmailModal');
+    });
+
+    document.getElementById('sendEmailForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('sendEmailSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '⏳ <span data-lang="sending">Sending...</span>';
+      
+      const platform = document.getElementById('emailPlatform').value;
+      const subject = document.getElementById('emailSubject').value;
+      const remarks = document.getElementById('emailRemarks').value;
+      const attachOrders = document.getElementById('attachOrders').checked;
+      
+      if (toEmails.length === 0) {
+        showToast('❌ Please add at least one recipient', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '📧 <span data-lang="send">Send Email</span>';
+        return;
+      }
+      
+      const ordersData = generateEmailBody();
+      
+      let mailtoLink = '';
+      if (platform === 'gmail') {
+        mailtoLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${toEmails.join(',')}&cc=${ccEmails.join(',')}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(remarks + '\n\n' + ordersData)}`;
+      } else if (platform === 'outlook') {
+        mailtoLink = `https://outlook.office.com/mail/deeplink/compose?to=${toEmails.join(',')}&cc=${ccEmails.join(',')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(remarks + '\n\n' + ordersData)}`;
+      } else if (platform === 'teams') {
+        mailtoLink = `https://teams.microsoft.com/l/chat/0/0?users=${toEmails.join(',')}&message=${encodeURIComponent(remarks + '\n\n' + ordersData)}`;
+      }
+      
+      window.open(mailtoLink, '_blank', 'noopener,noreferrer');
+      
+      setTimeout(() => {
+        showToast('✅ Email sent successfully! Check your email client.', 'success');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '📧 <span data-lang="send">Send Email</span>';
+        closeModal('sendEmailModal');
+      }, 2000);
+    });
+
+    function generateEmailBody() {
+      let body = `DN ORDER REPORT - ${new Date().toLocaleDateString()}\n\n`;
+      body += `Total Orders: ${allOrders.length}\n`;
+      body += `BU 17 Total: ${document.getElementById('totalBU17').textContent}\n`;
+      body += `CMI Total: ${document.getElementById('totalCMI').textContent}\n`;
+      body += `BU 19 Total: ${document.getElementById('totalBU19').textContent}\n`;
+      body += `PM 1 Total: ${document.getElementById('totalPM1').textContent}\n`;
+      body += `Overall Total: ${document.getElementById('totalOverall').textContent}\n\n`;
+      body += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      
+      allOrders.slice(0, 20).forEach((order, index) => {
+        body += `${index + 1}. ${order.customer_name}\n`;
+        body += `   PIC: ${order.pic_sales || '-'} | BU: ${order.bu_type}\n`;
+        body += `   Destination: ${order.destination}\n`;
+        body += `   DN Target: ${roundDnTarget(order.dn_target)} MT\n`;
+        body += `   Date: ${new Date(order.order_date).toLocaleDateString()}\n`;
+        body += `   Status: ${order.completed ? '✅ Completed' : '⏳ Pending'}\n\n`;
+      });
+      
+      return body;
+    }
+
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const page = item.dataset.page;
+        
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        document.getElementById(`${page}Page`).classList.remove('hidden');
+        
+        if (page === 'analytics') {
+          updateAnalytics();
+        }
+      });
+    });
+
+    // Calendar
+    function renderCalendar() {
+      const grid = document.getElementById('calendarGrid');
+      const holidaysList = document.getElementById('holidaysList');
+      grid.innerHTML = '';
+      holidaysList.innerHTML = '';
+      
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"];
+      document.getElementById('calendarMonthYear').textContent = 
+        `${monthNames[currentMonth]} ${currentYear}`;
+      
+      const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayHeaders.forEach((day, index) => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        if (index === 0) header.classList.add('sunday');
+        header.textContent = day;
+        grid.appendChild(header);
+      });
+      
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const today = new Date();
+      
+      const monthHolidays = [];
+      
+      for (let i = 0; i < firstDay; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day other-month';
+        grid.appendChild(emptyDay);
+      }
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = document.createElement('div');
+        dayElement.className = 'calendar-day';
+        dayElement.textContent = day;
+        
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const date = new Date(currentYear, currentMonth, day);
+        const dayOfWeek = date.getDay();
+        
+        if (dayOfWeek === 0) {
+          dayElement.classList.add('sunday');
+          monthHolidays.push({ date: day, name: 'Sunday - Weekend' });
+        }
+        
+        if (HOLIDAYS[dateStr]) {
+          dayElement.classList.add('holiday');
+          monthHolidays.push({ date: day, name: HOLIDAYS[dateStr] });
+        }
+        
+        const hasOrder = allOrders.some(order => order.order_date === dateStr && order.completed);
+        
+        if (hasOrder) {
+          dayElement.classList.add('completed');
+        }
+        
+        if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+          dayElement.classList.add('today');
+        }
+        
+        dayElement.addEventListener('click', () => {
+          const ordersOnDate = allOrders.filter(order => order.order_date === dateStr);
+          if (ordersOnDate.length > 0) {
+            ordersOnDate.forEach(order => {
+              toggleOrderCompletion(order);
+            });
+          }
+        });
+        
+        grid.appendChild(dayElement);
+      }
+      
+      if (monthHolidays.length === 0) {
+        holidaysList.innerHTML = '<div class="legend-item">No holidays this month</div>';
+      } else {
+        const sundays = monthHolidays.filter(h => h.name === 'Sunday - Weekend');
+        const otherHolidays = monthHolidays.filter(h => h.name !== 'Sunday - Weekend');
+        
+        if (sundays.length > 0) {
+          const sundayDates = sundays.map(h => h.date).join(', ');
+          holidaysList.innerHTML += `<div class="legend-item"><strong>Sundays:</strong> ${sundayDates}</div>`;
+        }
+        
+        otherHolidays.forEach(holiday => {
+          holidaysList.innerHTML += `<div class="legend-item"><strong>${holiday.date}:</strong> ${holiday.name}</div>`;
+        });
+      }
+    }
+
+    document.getElementById('prevMonth').addEventListener('click', () => {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      renderCalendar();
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      renderCalendar();
+    });
+
+    async function toggleOrderCompletion(order) {
+      const updatedOrder = { ...order, completed: !order.completed };
+      const result = await window.dataSdk.update(updatedOrder);
+      if (result.isOk) {
+        showToast(updatedOrder.completed ? '✅ Order marked as completed' : '⏳ Order marked as pending', 'success');
+      } else {
+        showToast('❌ Failed to update order', 'error');
+      }
+    }
+
+    // Update Statistics with filters
+    function updateStatistics() {
+      const dateFilter = document.getElementById('filterDate').value;
+      const monthFilter = document.getElementById('filterMonth').value;
+      const yearFilter = document.getElementById('filterYear').value;
+      
+      let filtered = allOrders;
+      
+      if (dateFilter) {
+        filtered = filtered.filter(order => order.order_date === dateFilter);
+      } else if (monthFilter) {
+        filtered = filtered.filter(order => {
+          const orderMonth = new Date(order.order_date).toISOString().substring(0, 7);
+          return orderMonth === monthFilter;
+        });
+      } else if (yearFilter) {
+        filtered = filtered.filter(order => {
+          const orderYear = new Date(order.order_date).getFullYear().toString();
+          return orderYear === yearFilter;
+        });
+      }
+      
+      const bu17Total = filtered
+        .filter(o => o.bu_type === 'BU 17')
+        .reduce((sum, o) => sum + roundDnTarget(o.dn_target), 0);
+      
+      const cmiTotal = filtered
+        .filter(o => o.bu_type === 'CMI')
+        .reduce((sum, o) => sum + roundDnTarget(o.dn_target), 0);
+      
+      const bu19Total = filtered
+        .filter(o => o.bu_type === 'BU 19')
+        .reduce((sum, o) => sum + roundDnTarget(o.dn_target), 0);
+      
+      const pm1Total = filtered
+        .filter(o => o.bu_type === 'PM 1')
+        .reduce((sum, o) => sum + roundDnTarget(o.dn_target), 0);
+      
+      const overallTotal = bu17Total + cmiTotal + bu19Total + pm1Total;
+      
+      document.getElementById('totalBU17').textContent = `${bu17Total.toFixed(2)} MT`;
+      document.getElementById('totalCMI').textContent = `${cmiTotal.toFixed(2)} MT`;
+      document.getElementById('totalBU19').textContent = `${bu19Total.toFixed(2)} MT`;
+      document.getElementById('totalPM1').textContent = `${pm1Total.toFixed(2)} MT`;
+      document.getElementById('totalOverall').textContent = `${overallTotal.toFixed(2)} MT`;
+    }
+
+    // Render orders
+    function renderOrders() {
+      const searchTerm = document.getElementById('searchCustomer').value.toLowerCase();
+      const buFilter = document.getElementById('filterBU').value;
+      const dateFilter = document.getElementById('filterDate').value;
+      const monthFilter = document.getElementById('filterMonth').value;
+      const yearFilter = document.getElementById('filterYear').value;
+      
+      let filtered = allOrders;
+      
+      if (searchTerm) {
+        filtered = filtered.filter(order => 
+          order.customer_name.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      if (buFilter) {
+        filtered = filtered.filter(order => order.bu_type === buFilter);
+      }
+      
+      if (dateFilter) {
+        filtered = filtered.filter(order => order.order_date === dateFilter);
+      }
+      
+      if (monthFilter) {
+        filtered = filtered.filter(order => {
+          const orderMonth = new Date(order.order_date).toISOString().substring(0, 7);
+          return orderMonth === monthFilter;
+        });
+      }
+      
+      if (yearFilter) {
+        filtered = filtered.filter(order => {
+          const orderYear = new Date(order.order_date).getFullYear().toString();
+          return orderYear === yearFilter;
+        });
+      }
+      
+      renderOrderTable('ordersTableBody', filtered.slice(0, 10));
+      renderOrderTable('allOrdersTableBody', filtered);
+      populateMonthFilters();
+      updateStatistics();
+    }
+
+    function renderOrderTable(tableId, orders) {
+      const tbody = document.getElementById(tableId);
+      tbody.innerHTML = '';
+      
+      if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No orders found</td></tr>';
+        return;
+      }
+      
+      const groupedByDate = {};
+      orders.forEach(order => {
+        const createdDate = order.order_date;
+        if (!groupedByDate[createdDate]) {
+          groupedByDate[createdDate] = [];
+        }
+        groupedByDate[createdDate].push(order);
+      });
+      
+      const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a));
+      
+      sortedDates.forEach(date => {
+        const dateRow = document.createElement('tr');
+        dateRow.style.background = 'linear-gradient(135deg, var(--accent-color), var(--accent-hover))';
+        dateRow.style.color = 'white';
+        
+        let holidayText = '';
+        if (HOLIDAYS[date]) {
+          holidayText = ` 🎉 ${HOLIDAYS[date]}`;
+        }
+        
+        dateRow.innerHTML = `
+          <td colspan="8" style="padding: 0.75rem 1rem; font-weight: 700; font-size: 0.95rem;">
+            📅 ${new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${holidayText}
+          </td>
+        `;
+        tbody.appendChild(dateRow);
+        
+        groupedByDate[date].forEach(order => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-size: 0.85rem;">${order.pic_sales || '-'}</td>
+            <td style="font-size: 0.85rem;">${order.customer_name}</td>
+            <td style="font-size: 0.85rem;">${order.destination}</td>
+            <td><span class="badge badge-${order.bu_type.toLowerCase().replace(' ', '')}">${order.bu_type}</span></td>
+            <td style="font-weight: 700;">${roundDnTarget(order.dn_target)} MT</td>
+            <td style="font-size: 0.85rem;">${new Date(order.order_date).toLocaleDateString()}</td>
+            <td>${order.completed ? '✅' : '⏳'}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="action-btn btn-success" onclick="editOrder('${order.__backendId}')">✏️</button>
+                <button class="action-btn btn-danger" onclick="deleteOrder('${order.__backendId}')">🗑️</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    function roundDnTarget(value) {
+      const num = Number(value);
+      if (num >= 23 && num <= 24) return 25;
+      if (num >= 20 && num <= 22) return 20;
+      return num;
+    }
+
+    function editOrder(backendId) {
+      const order = allOrders.find(o => o.__backendId === backendId);
+      if (!order) return;
+      
+      currentEditingOrder = order;
+      
+      document.getElementById('editOrderBackendId').value = order.__backendId;
+      document.getElementById('editBuType').value = order.bu_type;
+      document.getElementById('editCustomerName').value = order.customer_name;
+      document.getElementById('editPicSales').value = order.pic_sales || '';
+      document.getElementById('editDestination').value = order.destination;
+      document.getElementById('editDnTarget').value = order.dn_target;
+      document.getElementById('editOrderDate').value = order.order_date;
+      
+      openModal('editOrderModal');
+    }
+
+    async function deleteOrder(backendId) {
+      const order = allOrders.find(o => o.__backendId === backendId);
+      if (!order) return;
+      
+      const deleteBtn = event.target;
+      const originalText = deleteBtn.innerHTML;
+      deleteBtn.innerHTML = '⚠️';
+      deleteBtn.style.background = 'linear-gradient(135deg, #ed8936, #dd6b20)';
+      
+      const confirmDelete = async () => {
+        const result = await window.dataSdk.delete(order);
+        if (result.isOk) {
+          showToast('✅ Order deleted successfully', 'success');
+        } else {
+          showToast('❌ Failed to delete order', 'error');
+        }
+        deleteBtn.removeEventListener('click', confirmDelete);
+      };
+      
+      const cancelDelete = () => {
+        deleteBtn.innerHTML = originalText;
+        deleteBtn.style.background = '';
+        deleteBtn.removeEventListener('click', confirmDelete);
+      };
+      
+      deleteBtn.addEventListener('click', confirmDelete, { once: true });
+      setTimeout(cancelDelete, 3000);
+    }
+
+    document.getElementById('addOrderBtn').addEventListener('click', () => {
+      document.getElementById('addOrderForm').reset();
+      document.getElementById('customerName').innerHTML = '<option value="">Select BU Type first</option>';
+      openModal('addOrderModal');
+    });
+
+    document.getElementById('addOrderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (allOrders.length >= 999) {
+        showToast('❌ Maximum limit of 999 orders reached. Please delete some orders first.', 'error');
+        return;
+      }
+      
+      const submitBtn = document.getElementById('submitOrderBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Adding...';
+      
+      const buType = document.getElementById('buType').value;
+      const selectedCustomer = document.getElementById('customerName').value;
+      
+      let customerData = null;
+      if (buType === 'CMI') {
+        customerData = CUSTOMERS_DATA_CMI.find(c => c.customer === selectedCustomer);
+      } else if (buType === 'BU 17') {
+        customerData = BU17_DESTINATIONS.find(c => c.customer === selectedCustomer);
+      } else {
+        customerData = customCustomers.find(c => c.customer_name === selectedCustomer && c.bu_type === buType);
+      }
+      
+      const orderData = {
+        id: Date.now().toString(),
+        pic_sales: customerData ? (customerData.pic || customerData.pic_sales || '') : document.getElementById('picSales').value,
+        customer_name: selectedCustomer,
+        destination: document.getElementById('destination').value,
+        bu_type: buType,
+        dn_target: parseFloat(document.getElementById('dnTarget').value),
+        order_date: document.getElementById('orderDate').value,
+        completed: false,
+        is_customer: false,
+        created_at: new Date().toISOString()
+      };
+      
+      const result = await window.dataSdk.create(orderData);
+      
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add Order';
+      
+      if (result.isOk) {
+        showToast('✅ Order added successfully!', 'success');
+        closeModal('addOrderModal');
+        document.getElementById('addOrderForm').reset();
+      } else {
+        showToast('❌ Failed to add order. Please try again.', 'error');
+      }
+    });
+
+    document.getElementById('editOrderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!currentEditingOrder) return;
+      
+      const updateBtn = document.getElementById('updateOrderBtn');
+      updateBtn.disabled = true;
+      updateBtn.textContent = 'Updating...';
+      
+      const updatedOrder = {
+        ...currentEditingOrder,
+        bu_type: document.getElementById('editBuType').value,
+        customer_name: document.getElementById('editCustomerName').value,
+        pic_sales: document.getElementById('editPicSales').value,
+        destination: document.getElementById('editDestination').value,
+        dn_target: parseFloat(document.getElementById('editDnTarget').value),
+        order_date: document.getElementById('editOrderDate').value
+      };
+      
+      const result = await window.dataSdk.update(updatedOrder);
+      
+      updateBtn.disabled = false;
+      updateBtn.textContent = 'Update Order';
+      
+      if (result.isOk) {
+        showToast('✅ Order updated successfully!', 'success');
+        closeModal('editOrderModal');
+        currentEditingOrder = null;
+      } else {
+        showToast('❌ Failed to update order', 'error');
+      }
+    });
+
+    document.getElementById('addCustomerBtn').addEventListener('click', () => {
+      document.getElementById('addCustomerForm').reset();
+      openModal('addCustomerModal');
+    });
+
+    document.getElementById('addCustomerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitCustomerBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Adding...';
+      
+      const customerData = {
+        id: Date.now().toString(),
+        customer_name: document.getElementById('newCustomerName').value,
+        destination: document.getElementById('newCustomerDestination').value,
+        bu_type: document.getElementById('newCustomerBU').value,
+        pic_sales: document.getElementById('newCustomerPIC').value || '',
+        is_customer: true,
+        created_at: new Date().toISOString()
+      };
+      
+      const result = await window.dataSdk.create(customerData);
+      
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add Customer';
+      
+      if (result.isOk) {
+        showToast('✅ Customer added successfully!', 'success');
+        closeModal('addCustomerModal');
+        document.getElementById('addCustomerForm').reset();
+      } else {
+        showToast('❌ Failed to add customer', 'error');
+      }
+    });
+
+    function renderCustomersTable() {
+      const tbody = document.getElementById('customersTableBody');
+      tbody.innerHTML = '';
+      
+      if (customCustomers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No custom customers yet. Click "Add New Customer" to create one.</td></tr>';
+        return;
+      }
+      
+      customCustomers.forEach(customer => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight: 600;">${customer.customer_name}</td>
+          <td>${customer.destination}</td>
+          <td><span class="badge badge-${customer.bu_type.toLowerCase().replace(' ', '')}">${customer.bu_type}</span></td>
+          <td>${customer.pic_sales || '-'}</td>
+          <td>
+            <div class="action-buttons">
+              <button class="action-btn btn-success" onclick="editCustomer('${customer.__backendId}')">✏️</button>
+              <button class="action-btn btn-danger" onclick="deleteCustomer('${customer.__backendId}')">🗑️</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function editCustomer(backendId) {
+      const customer = customCustomers.find(c => c.__backendId === backendId);
+      if (!customer) return;
+      
+      currentEditingCustomer = customer;
+      
+      document.getElementById('editCustomerBackendId').value = customer.__backendId;
+      document.getElementById('editCustomerName').value = customer.customer_name;
+      document.getElementById('editCustomerDestination').value = customer.destination;
+      document.getElementById('editCustomerBU').value = customer.bu_type;
+      document.getElementById('editCustomerPIC').value = customer.pic_sales || '';
+      
+      openModal('editCustomerModal');
+    }
+
+    document.getElementById('editCustomerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!currentEditingCustomer) return;
+      
+      const updateBtn = document.getElementById('updateCustomerBtn');
+      updateBtn.disabled = true;
+      updateBtn.textContent = 'Updating...';
+      
+      const updatedCustomer = {
+        ...currentEditingCustomer,
+        customer_name: document.getElementById('editCustomerName').value,
+        destination: document.getElementById('editCustomerDestination').value,
+        bu_type: document.getElementById('editCustomerBU').value,
+        pic_sales: document.getElementById('editCustomerPIC').value
+      };
+      
+      const result = await window.dataSdk.update(updatedCustomer);
+      
+      updateBtn.disabled = false;
+      updateBtn.textContent = 'Update Customer';
+      
+      if (result.isOk) {
+        showToast('✅ Customer updated successfully!', 'success');
+        closeModal('editCustomerModal');
+        currentEditingCustomer = null;
+      } else {
+        showToast('❌ Failed to update customer', 'error');
+      }
+    });
+
+    async function deleteCustomer(backendId) {
+      const customer = customCustomers.find(c => c.__backendId === backendId);
+      if (!customer) return;
+      
+      const deleteBtn = event.target;
+      const originalText = deleteBtn.innerHTML;
+      deleteBtn.innerHTML = '⚠️';
+      deleteBtn.style.background = 'linear-gradient(135deg, #ed8936, #dd6b20)';
+      
+      const confirmDelete = async () => {
+        const result = await window.dataSdk.delete(customer);
+        if (result.isOk) {
+          showToast('✅ Customer deleted successfully', 'success');
+        } else {
+          showToast('❌ Failed to delete customer', 'error');
+        }
+        deleteBtn.removeEventListener('click', confirmDelete);
+      };
+      
+      const cancelDelete = () => {
+        deleteBtn.innerHTML = originalText;
+        deleteBtn.style.background = '';
+        deleteBtn.removeEventListener('click', confirmDelete);
+      };
+      
+      deleteBtn.addEventListener('click', confirmDelete, { once: true});
+      setTimeout(cancelDelete, 3000);
+    }
+
+    function updateAnalytics() {
+      const monthFilter = document.getElementById('analyticsMonth').value;
+      const chartType = document.getElementById('chartType').value;
+      
+      let filtered = allOrders;
+      if (monthFilter) {
+        filtered = filtered.filter(order => {
+          const orderMonth = new Date(order.order_date).toISOString().substring(0, 7);
+          return orderMonth === monthFilter;
+        });
+      }
+      
+      const customerData = {};
+      filtered.forEach(order => {
+        if (!customerData[order.customer_name]) {
+          customerData[order.customer_name] = 0;
+        }
+        customerData[order.customer_name] += roundDnTarget(order.dn_target);
+      });
+      
+      const sortedCustomers = Object.entries(customerData)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      renderChart('topCustomersChart', {
+        labels: sortedCustomers.map(c => c[0].length > 25 ? c[0].substring(0, 25) + '...' : c[0]),
+        datasets: [{
+          label: 'DN Target (MT)',
+          data: sortedCustomers.map(c => c[1]),
+          backgroundColor: 'rgba(102, 126, 234, 0.8)',
+          borderColor: 'rgba(102, 126, 234, 1)',
+          borderWidth: 2
+        }]
+      }, chartType);
+      
+      const buData = { 'BU 17': 0, 'CMI': 0, 'BU 19': 0, 'PM 1': 0 };
+      filtered.forEach(order => {
+        buData[order.bu_type]++;
+      });
+      
+      renderChart('buTypeChart', {
+        labels: ['BU 17', 'CMI', 'BU 19', 'PM 1'],
+        datasets: [{
+          label: 'Number of Orders',
+          data: [buData['BU 17'], buData['CMI'], buData['BU 19'], buData['PM 1']],
+          backgroundColor: [
+            'rgba(102, 126, 234, 0.8)',
+            'rgba(72, 187, 120, 0.8)',
+            'rgba(237, 137, 54, 0.8)',
+            'rgba(139, 92, 246, 0.8)'
+          ],
+          borderColor: [
+            'rgba(102, 126, 234, 1)',
+            'rgba(72, 187, 120, 1)',
+            'rgba(237, 137, 54, 1)',
+            'rgba(139, 92, 246, 1)'
+          ],
+          borderWidth: 2
+        }]
+      }, 'bar');
+    }
+
+    function renderChart(canvasId, data, type) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      
+      if (canvasId === 'topCustomersChart') {
+        if (topCustomersChart) {
+          topCustomersChart.destroy();
+        }
+        topCustomersChart = new Chart(ctx, {
+          type: type,
+          data: data,
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      } else if (canvasId === 'buTypeChart') {
+        if (buTypeChart) {
+          buTypeChart.destroy();
+        }
+        buTypeChart = new Chart(ctx, {
+          type: type,
+          data: data,
+          options: {
+            responsive: true,
+            maintainAspectRatio: true
+          }
+        });
+      }
+    }
+
+    document.getElementById('chartType').addEventListener('change', updateAnalytics);
+    document.getElementById('analyticsMonth').addEventListener('change', updateAnalytics);
+
+    document.getElementById('searchCustomer').addEventListener('input', renderOrders);
+    document.getElementById('filterBU').addEventListener('change', renderOrders);
+    document.getElementById('filterDate').addEventListener('change', renderOrders);
+    document.getElementById('filterMonth').addEventListener('change', renderOrders);
+    document.getElementById('filterYear').addEventListener('change', renderOrders);
+
+    function populateMonthFilters() {
+      const filterMonth = document.getElementById('filterMonth');
+      const filterYear = document.getElementById('filterYear');
+      const analyticsMonth = document.getElementById('analyticsMonth');
+      
+      const months = new Set();
+      const years = new Set();
+      
+      allOrders.forEach(order => {
+        const month = new Date(order.order_date).toISOString().substring(0, 7);
+        const year = new Date(order.order_date).getFullYear().toString();
+        months.add(month);
+        years.add(year);
+      });
+      
+      const sortedMonths = Array.from(months).sort().reverse();
+      const sortedYears = Array.from(years).sort().reverse();
+      
+      filterMonth.innerHTML = '<option value="">All Months</option>';
+      filterYear.innerHTML = '<option value="">All Years</option>';
+      analyticsMonth.innerHTML = '<option value="">All Time</option>';
+      
+      sortedMonths.forEach(month => {
+        const date = new Date(month + '-01');
+        const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        const option1 = document.createElement('option');
+        option1.value = month;
+        option1.textContent = monthName;
+        filterMonth.appendChild(option1);
+        
+        const option2 = document.createElement('option');
+        option2.value = month;
+        option2.textContent = monthName;
+        analyticsMonth.appendChild(option2);
+      });
+      
+      sortedYears.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        filterYear.appendChild(option);
+      });
+    }
+
+    function populateCustomersDropdown() {
+      const select = document.getElementById('customerName');
+      const buTypeSelect = document.getElementById('buType');
+      
+      function updateCustomerDropdown(buType) {
+        select.innerHTML = '<option value="">Select Customer</option>';
+        
+        if (buType === 'CMI') {
+          const groupedByPic = {};
+          CUSTOMERS_DATA_CMI.forEach(data => {
+            if (!groupedByPic[data.pic]) {
+              groupedByPic[data.pic] = [];
+            }
+            groupedByPic[data.pic].push(data);
+          });
+          
+          Object.keys(groupedByPic).sort().forEach(pic => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = `PIC: ${pic}`;
+            groupedByPic[pic].forEach(data => {
+              const option = document.createElement('option');
+              option.value = data.customer;
+              option.textContent = `${data.customer}`;
+              optgroup.appendChild(option);
+            });
+            select.appendChild(optgroup);
+          });
+        } else if (buType === 'BU 17') {
+          BU17_DESTINATIONS.forEach(d => {
+            const option = document.createElement('option');
+            option.value = d.customer;
+            option.textContent = `${d.customer} - ${d.destination}`;
+            select.appendChild(option);
+          });
+        } else if (buType === 'BU 19' || buType === 'PM 1') {
+          const relevantCustomers = customCustomers.filter(c => c.bu_type === buType);
+          if (relevantCustomers.length > 0) {
+            relevantCustomers.forEach(c => {
+              const option = document.createElement('option');
+              option.value = c.customer_name;
+              option.textContent = `${c.customer_name} - ${c.destination}`;
+              select.appendChild(option);
+            });
+          } else {
+            select.innerHTML = '<option value="">No customers for this BU Type (Add in Customers page)</option>';
+          }
+        }
+      }
+      
+      select.addEventListener('change', () => {
+        const selectedCustomer = select.value;
+        const buType = buTypeSelect.value;
+        
+        if (buType === 'CMI') {
+          const customerData = CUSTOMERS_DATA_CMI.find(c => c.customer === selectedCustomer);
+          if (customerData) {
+            document.getElementById('picSales').value = customerData.pic;
+            document.getElementById('destination').value = customerData.destination;
+          }
+        } else if (buType === 'BU 17') {
+          document.getElementById('picSales').value = '';
+          const bu17Data = BU17_DESTINATIONS.find(d => d.customer === selectedCustomer);
+          if (bu17Data) {
+            document.getElementById('destination').value = bu17Data.destination;
+          }
+        } else {
+          const customData = customCustomers.find(c => c.customer_name === selectedCustomer && c.bu_type === buType);
+          if (customData) {
+            document.getElementById('picSales').value = customData.pic_sales || '';
+            document.getElementById('destination').value = customData.destination;
+          }
+        }
+      });
+      
+      buTypeSelect.addEventListener('change', () => {
+        const buType = buTypeSelect.value;
+        
+        select.value = '';
+        document.getElementById('picSales').value = '';
+        document.getElementById('destination').value = '';
+        
+        updateCustomerDropdown(buType);
+      });
+    }
+
+    document.querySelectorAll('.theme-option').forEach(option => {
+      option.addEventListener('click', () => {
+        const theme = option.dataset.theme;
+        document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+        document.querySelector('.app-wrapper').className = `app-wrapper theme-${theme}`;
+        currentTheme = theme;
+        showToast(`🎨 Theme changed to ${theme.charAt(0).toUpperCase() + theme.slice(1)}`, 'success');
+      });
+    });
+
+    function exportData(format) {
+      showToast(`📥 Exporting data as ${format.toUpperCase()}...`, 'success');
+      setTimeout(() => {
+        const dataStr = JSON.stringify(allOrders, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `orders_export_${new Date().toISOString().split('T')[0]}.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`✅ Data exported as ${format.toUpperCase()}`, 'success');
+      }, 1000);
+    }
+
+    function printPreview() {
+      showToast('🖨️ Opening print preview...', 'success');
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      openModal('downloadModal');
+    });
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} active`;
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 4000);
+    }
+
+    async function init() {
+      await initElementSdk();
+      await initDataSdk();
+      populateCustomersDropdown();
+      renderCalendar();
+      
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('orderDate').value = today;
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b774caf15028a13',t:'MTc2NzMyNTkwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
